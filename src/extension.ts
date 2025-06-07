@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import { TemplateManager } from './templateManager';
+import { TemplateEditorProvider } from './templateEditorProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
 
     const templateManager = new TemplateManager();
+    const templateEditorProvider = new TemplateEditorProvider(context, templateManager);
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -57,6 +59,18 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(disposable);
+
+    // Register template configuration command
+    let configureTemplatesCommand = vscode.commands.registerCommand('layered-gen.configureTemplates', () => {
+        templateEditorProvider.showTemplateConfiguration();
+    });
+    context.subscriptions.push(configureTemplatesCommand);
+
+    // Register template registration command
+    let registerTemplatesCommand = vscode.commands.registerCommand('layered-gen.registerTemplates', () => {
+        templateEditorProvider.showTemplateRegistration();
+    });
+    context.subscriptions.push(registerTemplatesCommand);
 }
 
 export function deactivate() {}
