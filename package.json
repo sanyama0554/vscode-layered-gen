@@ -6,13 +6,15 @@
   "engines": {
     "vscode": "^1.74.0"
   },
-  "categories": ["Other"],
+  "categories": [
+    "Other"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "layered-gen.generateFiles",
-        "title": "Generate Layered Architecture Files"
+        "title": "テンプレートからファイル生成"
       }
     ],
     "menus": {
@@ -23,6 +25,48 @@
           "group": "2_workspace"
         }
       ]
+    },
+    "configuration": {
+      "title": "Layered Architecture Generator",
+      "properties": {
+        "layered-gen.templates": {
+          "type": "array",
+          "default": [
+            {
+              "name": "Default",
+              "structure": [
+                {
+                  "path": "domain/{name}.ts",
+                  "template": "domain"
+                },
+                {
+                  "path": "application/{name}Service.ts",
+                  "template": "service"
+                },
+                {
+                  "path": "infrastructure/{name}Repository.ts",
+                  "template": "repository"
+                },
+                {
+                  "path": "presentation/{name}Controller.ts",
+                  "template": "controller"
+                }
+              ]
+            }
+          ],
+          "description": "テンプレート構成の定義"
+        },
+        "layered-gen.fileTemplates": {
+          "type": "object",
+          "default": {
+            "domain": "export class {Name} {\n  constructor(\n    public readonly id: string,\n  ) {}\n}\n",
+            "service": "import { {Name} } from '../domain/{name}';\n\nexport class {Name}Service {\n  constructor() {}\n}\n",
+            "repository": "import { {Name} } from '../domain/{name}';\n\nexport class {Name}Repository {\n  async findById(id: string): Promise<{Name} | null> {\n    // TODO: Implement\n    return null;\n  }\n}\n",
+            "controller": "import { {Name}Service } from '../application/{name}Service';\n\nexport class {Name}Controller {\n  constructor(\n    private readonly {name}Service: {Name}Service,\n  ) {}\n}\n"
+          },
+          "description": "各ファイルテンプレートの内容"
+        }
+      }
     }
   },
   "scripts": {
@@ -34,12 +78,16 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.74.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-electron": "^2.2.0",
     "eslint": "^8.28.0",
-    "typescript": "^4.9.3",
-    "@vscode/test-electron": "^2.2.0"
+    "glob": "^11.0.2",
+    "mocha": "^11.5.0",
+    "typescript": "^4.9.3"
   }
 }
