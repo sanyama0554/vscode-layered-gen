@@ -12,4 +12,14 @@ suite('Extension Test Suite', () => {
         const commands = await vscode.commands.getCommands();
         assert.ok(commands.includes('layered-gen.generateFiles'));
     });
+
+    test('Should register configure templates command', async () => {
+        const commands = await vscode.commands.getCommands();
+        assert.ok(commands.includes('layered-gen.configureTemplates'));
+    });
+
+    test('Should register register templates command', async () => {
+        const commands = await vscode.commands.getCommands();
+        assert.ok(commands.includes('layered-gen.registerTemplates'));
+    });
 });

@@ -15,6 +15,16 @@
       {
         "command": "layered-gen.generateFiles",
         "title": "テンプレートからファイル生成"
+      },
+      {
+        "command": "layered-gen.configureTemplates",
+        "title": "テンプレート設定",
+        "category": "Layered Generator"
+      },
+      {
+        "command": "layered-gen.registerTemplates",
+        "title": "テンプレート登録",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
