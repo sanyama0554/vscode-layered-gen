@@ -1,26 +1,59 @@
 import * as vscode from 'vscode';
+import { TemplateManager } from './templateManager';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
 
+    const templateManager = new TemplateManager();
+
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
-            vscode.window.showErrorMessage('Please right-click on a folder in the explorer');
+            vscode.window.showErrorMessage('フォルダを右クリックしてください');
             return;
         }
 
         const entityName = await vscode.window.showInputBox({
-            prompt: 'Enter entity name (e.g., user, product)',
-            placeHolder: 'entity name'
+            prompt: '生成するファイル名を入力してください (例: User)',
+            placeHolder: 'ファイル名'
         });
 
         if (!entityName) {
             return;
         }
 
-        vscode.window.showInformationMessage(`Generating files for entity: ${entityName} in ${uri.fsPath}`);
-        
-        // TODO: Implement file generation logic
+        try {
+            const templates = templateManager.getTemplates();
+            let selectedTemplate: string | undefined;
+
+            if (templates.length > 1) {
+                const templateNames = templates.map(t => t.name);
+                selectedTemplate = await vscode.window.showQuickPick(templateNames, {
+                    placeHolder: 'テンプレートを選択してください'
+                });
+
+                if (!selectedTemplate) {
+                    return;
+                }
+            }
+
+            const generatedFiles = await templateManager.generateFiles(
+                uri.fsPath,
+                entityName,
+                selectedTemplate
+            );
+
+            vscode.window.showInformationMessage(
+                `${generatedFiles.length}個のファイルを生成しました: ${entityName}`
+            );
+
+            // Open the first generated file
+            if (generatedFiles.length > 0) {
+                const doc = await vscode.workspace.openTextDocument(generatedFiles[0]);
+                await vscode.window.showTextDocument(doc);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`ファイル生成エラー: ${error}`);
+        }
     });
 
     context.subscriptions.push(disposable);
