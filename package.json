@@ -30,6 +30,11 @@
         "command": "layered-gen.registerTemplates",
         "title": "テンプレート登録",
         "category": "Layered Generator"
+      },
+      {
+        "command": "layered-gen.numberProtobufFields",
+        "title": "Protobufフィールドに連番を付ける",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
