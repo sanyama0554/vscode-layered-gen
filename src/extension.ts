@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { TemplateManager } from './templateManager';
 import { TemplateEditorProvider } from './templateEditorProvider';
+import { ProtobufFieldNumberer } from './protobufFieldNumberer';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
 
     const templateManager = new TemplateManager();
     const templateEditorProvider = new TemplateEditorProvider(context, templateManager);
+    const protobufFieldNumberer = new ProtobufFieldNumberer();
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -79,6 +81,16 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(registerTemplatesCommand);
+
+    // Register protobuf field numbering command
+    let numberProtobufFieldsCommand = vscode.commands.registerCommand('layered-gen.numberProtobufFields', async () => {
+        try {
+            await protobufFieldNumberer.numberFields();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Protobufフィールド番号付けエラー: ${error}`);
+        }
+    });
+    context.subscriptions.push(numberProtobufFieldsCommand);
 }
 
 export function deactivate() {}

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package example;
+
+// Example message with unordered field numbers
+message User {
+    string id = 10;
+    string name = 2;
+    int32 age = 5;
+    repeated string emails = 1;
+    bool is_active = 8;
+}
+
+// Nested message example
+message Order {
+    string order_id = 3;
+    User customer = 1;
+    repeated Item items = 5;
+    double total_price = 2;
+    
+    message Item {
+        string product_id = 2;
+        int32 quantity = 1;
+        double price = 3;
+    }
+}
+
+// Empty message
+message Empty {
+}
+
+// Message with reserved fields
+message WithReserved {
+    reserved 2, 15, 9 to 11;
+    reserved "foo", "bar";
+    
+    string field1 = 1;
+    string field2 = 5;
+    string field3 = 3;
+}
