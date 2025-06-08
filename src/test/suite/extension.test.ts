@@ -22,4 +22,9 @@ suite('Extension Test Suite', () => {
         const commands = await vscode.commands.getCommands();
         assert.ok(commands.includes('layered-gen.registerTemplates'));
     });
+
+    test('Should register number protobuf fields command', async () => {
+        const commands = await vscode.commands.getCommands();
+        assert.ok(commands.includes('layered-gen.numberProtobufFields'));
+    });
 });
