@@ -62,13 +62,21 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register template configuration command
     let configureTemplatesCommand = vscode.commands.registerCommand('layered-gen.configureTemplates', () => {
-        templateEditorProvider.showTemplateConfiguration();
+        try {
+            templateEditorProvider.showTemplateConfiguration();
+        } catch (error) {
+            vscode.window.showErrorMessage(`テンプレート設定エラー: ${error}`);
+        }
     });
     context.subscriptions.push(configureTemplatesCommand);
 
     // Register template registration command
     let registerTemplatesCommand = vscode.commands.registerCommand('layered-gen.registerTemplates', () => {
-        templateEditorProvider.showTemplateRegistration();
+        try {
+            templateEditorProvider.showTemplateRegistration();
+        } catch (error) {
+            vscode.window.showErrorMessage(`テンプレート登録エラー: ${error}`);
+        }
     });
     context.subscriptions.push(registerTemplatesCommand);
 }
