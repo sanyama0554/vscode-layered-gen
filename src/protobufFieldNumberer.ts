@@ -30,13 +30,17 @@ export class ProtobufFieldNumberer {
         }
         
         // Apply edits
-        await editor.edit(editBuilder => {
+        const success = await editor.edit(editBuilder => {
             for (const block of messageBlocks) {
                 this.numberFieldsInBlock(lines, block, editBuilder, document);
             }
         });
         
-        vscode.window.showInformationMessage('フィールド番号を更新しました');
+        if (success) {
+            vscode.window.showInformationMessage('フィールド番号を更新しました');
+        } else {
+            vscode.window.showErrorMessage('フィールド番号の更新に失敗しました');
+        }
     }
     
     private findMessageBlocks(lines: string[]): Array<{start: number, end: number, depth: number}> {
@@ -48,7 +52,7 @@ export class ProtobufFieldNumberer {
             const line = lines[i].trim();
             
             // Check for message start
-            if (line.match(/^message\s+\w+\s*{/) || line.match(/^\s*message\s+\w+\s*{/)) {
+            if (line.match(/^message\s+\w+\s*{/)) {
                 stack.push({ start: i, depth: depth });
                 depth++;
             } else if (line.includes('{')) {
@@ -82,10 +86,29 @@ export class ProtobufFieldNumberer {
         document: vscode.TextDocument
     ) {
         let fieldNumber = 1;
-        const fieldRegex = /^(\s*)(optional\s+|required\s+|repeated\s+)?(\w+)\s+(\w+)\s*=\s*(\d+)?\s*;/;
+        // Updated regex to handle various proto field formats
+        // Matches: [indent][modifier]type name = number;
+        const fieldRegex = /^(\s*)(optional\s+|required\s+|repeated\s+|oneof\s+)?(\w+(?:\.\w+)*)\s+(\w+)\s*=\s*(\d+)\s*;/;
         
         for (let i = block.start + 1; i < block.end; i++) {
             const line = lines[i];
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('//')) {
+                continue;
+            }
+            
+            // Skip reserved fields
+            if (trimmedLine.startsWith('reserved')) {
+                continue;
+            }
+            
+            // Skip nested message declarations
+            if (trimmedLine.startsWith('message')) {
+                continue;
+            }
+            
             const match = line.match(fieldRegex);
             
             if (match) {
@@ -94,11 +117,6 @@ export class ProtobufFieldNumberer {
                 const type = match[3];
                 const name = match[4];
                 const existingNumber = match[5];
-                
-                // Skip if it's a reserved field
-                if (line.trim().startsWith('reserved')) {
-                    continue;
-                }
                 
                 // Create new line with sequential number
                 const newLine = `${indent}${modifier}${type} ${name} = ${fieldNumber};`;
