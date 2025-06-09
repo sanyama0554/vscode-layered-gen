@@ -35,6 +35,11 @@
         "command": "layered-gen.numberProtobufFields",
         "title": "Protobufフィールドに連番を付ける",
         "category": "Layered Generator"
+      },
+      {
+        "command": "layered-gen.showDependencyGraph",
+        "title": "ファイル依存グラフを表示",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
@@ -43,6 +48,24 @@
           "when": "explorerResourceIsFolder",
           "command": "layered-gen.generateFiles",
           "group": "2_workspace"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "dependencyGraph",
+          "name": "ファイル依存グラフ",
+          "when": "workspaceHasPackageJSON"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "layered-gen",
+          "title": "Layered Generator",
+          "icon": "$(graph)"
         }
       ]
     },
@@ -96,6 +119,10 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js"
+  },
+  "dependencies": {
+    "globby": "^11.1.0",
+    "ts-morph": "^19.0.0"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",

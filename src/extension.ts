@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { TemplateManager } from './templateManager';
 import { TemplateEditorProvider } from './templateEditorProvider';
 import { ProtobufFieldNumberer } from './protobufFieldNumberer';
+import { DependencyTreeProvider } from './dependencyTreeProvider';
+import { DependencyGraphWebview } from './dependencyGraphWebview';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
@@ -9,6 +11,8 @@ export function activate(context: vscode.ExtensionContext) {
     const templateManager = new TemplateManager();
     const templateEditorProvider = new TemplateEditorProvider(context, templateManager);
     const protobufFieldNumberer = new ProtobufFieldNumberer();
+    const dependencyTreeProvider = new DependencyTreeProvider();
+    const dependencyGraphWebview = new DependencyGraphWebview(context);
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -91,6 +95,52 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(numberProtobufFieldsCommand);
+
+    // Register dependency graph tree view
+    vscode.window.createTreeView('dependencyGraph', {
+        treeDataProvider: dependencyTreeProvider,
+        showCollapseAll: true
+    });
+
+    // Register dependency graph webview command
+    let showDependencyGraphCommand = vscode.commands.registerCommand('layered-gen.showDependencyGraph', async () => {
+        try {
+            await dependencyGraphWebview.show();
+        } catch (error) {
+            vscode.window.showErrorMessage(`依存グラフ表示エラー: ${error}`);
+        }
+    });
+    context.subscriptions.push(showDependencyGraphCommand);
+
+    // Register file open command
+    let openFileCommand = vscode.commands.registerCommand('layered-gen.openFile', async (filePath: string) => {
+        try {
+            const document = await vscode.workspace.openTextDocument(filePath);
+            await vscode.window.showTextDocument(document);
+        } catch (error) {
+            vscode.window.showErrorMessage(`ファイルを開けませんでした: ${error}`);
+        }
+    });
+    context.subscriptions.push(openFileCommand);
+
+    // Register refresh command
+    let refreshDependencyGraphCommand = vscode.commands.registerCommand('layered-gen.refreshDependencyGraph', () => {
+        dependencyTreeProvider.refresh();
+    });
+    context.subscriptions.push(refreshDependencyGraphCommand);
+
+    // File watcher for auto-refresh
+    const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.{ts,tsx,js,jsx}');
+    fileWatcher.onDidChange(() => {
+        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+    });
+    fileWatcher.onDidCreate(() => {
+        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+    });
+    fileWatcher.onDidDelete(() => {
+        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+    });
+    context.subscriptions.push(fileWatcher);
 }
 
 export function deactivate() {}
