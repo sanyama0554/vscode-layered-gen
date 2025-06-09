@@ -1,0 +1,443 @@
+"""
+User management GraphQL schema
+Supports user registration, authentication, and profile management
+"""
+
+scalar DateTime
+scalar Email
+scalar UUID
+
+enum UserRole {
+    ADMIN
+    MODERATOR 
+    USER
+    GUEST
+}
+
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+    PENDING_VERIFICATION
+}
+
+interface Node {
+    id: ID!
+}
+
+interface Timestamped {
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
+type User implements Node & Timestamped {
+    """Unique user identifier"""
+    id: ID!
+    
+    """User's email address (must be unique)"""
+    email: Email!
+    
+    """User's display name"""
+    username: String!
+    
+    """User's full name"""
+    fullName: String
+    
+    """User's profile avatar URL"""
+    avatar: String
+    
+    """User's role in the system"""
+    role: UserRole!
+    
+    """Current user status"""
+    status: UserStatus!
+    
+    """Whether user has verified their email"""
+    emailVerified: Boolean!
+    
+    """User's posts"""
+    posts(first: Int, after: String): PostConnection!
+    
+    """User's profile settings"""
+    profile: UserProfile
+    
+    """When the user was created"""
+    createdAt: DateTime!
+    
+    """When the user was last updated"""
+    updatedAt: DateTime!
+}
+
+type UserProfile {
+    """User's bio/description"""
+    bio: String
+    
+    """User's location"""
+    location: String
+    
+    """User's website URL"""
+    website: String
+    
+    """User's birth date"""
+    birthDate: DateTime
+    
+    """Privacy settings"""
+    isPrivate: Boolean!
+}
+
+type Post implements Node & Timestamped {
+    """Unique post identifier"""
+    id: ID!
+    
+    """Post title"""
+    title: String!
+    
+    """Post content"""
+    content: String!
+    
+    """Post slug for URL"""
+    slug: String!
+    
+    """Whether post is published"""
+    published: Boolean!
+    
+    """Post author"""
+    author: User!
+    
+    """Post tags"""
+    tags: [Tag!]!
+    
+    """Post comments"""
+    comments(first: Int, after: String): CommentConnection!
+    
+    """Number of likes"""
+    likesCount: Int!
+    
+    """Whether current user liked this post"""
+    isLikedByViewer: Boolean!
+    
+    """When the post was created"""
+    createdAt: DateTime!
+    
+    """When the post was last updated"""
+    updatedAt: DateTime!
+}
+
+type Tag {
+    """Tag name"""
+    name: String!
+    
+    """Tag description"""
+    description: String
+    
+    """Posts with this tag"""
+    posts(first: Int, after: String): PostConnection!
+    
+    """Number of posts with this tag"""
+    postCount: Int!
+}
+
+type Comment implements Node & Timestamped {
+    """Unique comment identifier"""
+    id: ID!
+    
+    """Comment content"""
+    content: String!
+    
+    """Comment author"""
+    author: User!
+    
+    """Post this comment belongs to"""
+    post: Post!
+    
+    """Parent comment (for replies)"""
+    parent: Comment
+    
+    """Nested replies to this comment"""
+    replies(first: Int): [Comment!]!
+    
+    """When the comment was created"""
+    createdAt: DateTime!
+    
+    """When the comment was last updated"""
+    updatedAt: DateTime!
+}
+
+type PostConnection {
+    """List of posts"""
+    edges: [PostEdge!]!
+    
+    """Pagination info"""
+    pageInfo: PageInfo!
+    
+    """Total count of posts"""
+    totalCount: Int!
+}
+
+type PostEdge {
+    """Post node"""
+    node: Post!
+    
+    """Cursor for pagination"""
+    cursor: String!
+}
+
+type CommentConnection {
+    """List of comments"""
+    edges: [CommentEdge!]!
+    
+    """Pagination info"""
+    pageInfo: PageInfo!
+    
+    """Total count of comments"""
+    totalCount: Int!
+}
+
+type CommentEdge {
+    """Comment node"""
+    node: Comment!
+    
+    """Cursor for pagination"""
+    cursor: String!
+}
+
+type PageInfo {
+    """Whether there are more items"""
+    hasNextPage: Boolean!
+    
+    """Whether there are previous items"""
+    hasPreviousPage: Boolean!
+    
+    """Start cursor"""
+    startCursor: String
+    
+    """End cursor"""
+    endCursor: String
+}
+
+union SearchResult = User | Post | Tag
+
+input CreateUserInput {
+    """User's email address"""
+    email: Email!
+    
+    """User's username"""
+    username: String!
+    
+    """User's password"""
+    password: String!
+    
+    """User's full name"""
+    fullName: String
+}
+
+input UpdateUserInput {
+    """User's username"""
+    username: String
+    
+    """User's full name"""
+    fullName: String
+    
+    """User's avatar URL"""
+    avatar: String
+}
+
+input UpdateUserProfileInput {
+    """User's bio"""
+    bio: String
+    
+    """User's location"""
+    location: String
+    
+    """User's website"""
+    website: String
+    
+    """Privacy setting"""
+    isPrivate: Boolean
+}
+
+input CreatePostInput {
+    """Post title"""
+    title: String!
+    
+    """Post content"""
+    content: String!
+    
+    """Post tags"""
+    tags: [String!]
+    
+    """Whether to publish immediately"""
+    published: Boolean = false
+}
+
+input UpdatePostInput {
+    """Post title"""
+    title: String
+    
+    """Post content"""
+    content: String
+    
+    """Post tags"""
+    tags: [String!]
+    
+    """Whether post is published"""
+    published: Boolean
+}
+
+input CreateCommentInput {
+    """Comment content"""
+    content: String!
+    
+    """Post ID"""
+    postId: ID!
+    
+    """Parent comment ID (for replies)"""
+    parentId: ID
+}
+
+type AuthPayload {
+    """JWT access token"""
+    token: String!
+    
+    """Authenticated user"""
+    user: User!
+    
+    """Token expiration time"""
+    expiresAt: DateTime!
+}
+
+type Query {
+    """Get current authenticated user"""
+    me: User
+    
+    """Get user by ID"""
+    user(id: ID!): User
+    
+    """Get user by username"""
+    userByUsername(username: String!): User
+    
+    """Search users"""
+    users(
+        query: String
+        role: UserRole
+        status: UserStatus
+        first: Int
+        after: String
+    ): UserConnection!
+    
+    """Get post by ID"""
+    post(id: ID!): Post
+    
+    """Get post by slug"""
+    postBySlug(slug: String!): Post
+    
+    """Search posts"""
+    posts(
+        query: String
+        authorId: ID
+        tag: String
+        published: Boolean
+        first: Int
+        after: String
+    ): PostConnection!
+    
+    """Get trending posts"""
+    trendingPosts(first: Int = 10): [Post!]!
+    
+    """Get comment by ID"""
+    comment(id: ID!): Comment
+    
+    """Get all tags"""
+    tags(first: Int, after: String): TagConnection!
+    
+    """Search across all content"""
+    search(query: String!, first: Int, after: String): SearchConnection!
+}
+
+type Mutation {
+    """Register a new user"""
+    register(input: CreateUserInput!): AuthPayload!
+    
+    """Login user"""
+    login(email: Email!, password: String!): AuthPayload!
+    
+    """Logout current user"""
+    logout: Boolean!
+    
+    """Update current user"""
+    updateUser(input: UpdateUserInput!): User!
+    
+    """Update user profile"""
+    updateProfile(input: UpdateUserProfileInput!): UserProfile!
+    
+    """Delete current user account"""
+    deleteAccount: Boolean!
+    
+    """Create a new post"""
+    createPost(input: CreatePostInput!): Post!
+    
+    """Update existing post"""
+    updatePost(id: ID!, input: UpdatePostInput!): Post!
+    
+    """Delete post"""
+    deletePost(id: ID!): Boolean!
+    
+    """Like/unlike a post"""
+    toggleLike(postId: ID!): Post!
+    
+    """Create a comment"""
+    createComment(input: CreateCommentInput!): Comment!
+    
+    """Update comment"""
+    updateComment(id: ID!, content: String!): Comment!
+    
+    """Delete comment"""
+    deleteComment(id: ID!): Boolean!
+}
+
+type Subscription {
+    """Subscribe to new posts"""
+    postAdded: Post!
+    
+    """Subscribe to post updates"""
+    postUpdated(postId: ID!): Post!
+    
+    """Subscribe to new comments on a post"""
+    commentAdded(postId: ID!): Comment!
+    
+    """Subscribe to user status changes"""
+    userStatusChanged(userId: ID!): User!
+}
+
+type UserConnection {
+    edges: [UserEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type UserEdge {
+    node: User!
+    cursor: String!
+}
+
+type TagConnection {
+    edges: [TagEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type TagEdge {
+    node: Tag!
+    cursor: String!
+}
+
+type SearchConnection {
+    edges: [SearchEdge!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type SearchEdge {
+    node: SearchResult!
+    cursor: String!
+}
