@@ -22,13 +22,23 @@ export class DependencyGraphAnalyzer {
     constructor() {
         this.project = new Project();
         this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        console.log('DependencyGraphAnalyzer initialized with workspaceRoot:', this.workspaceRoot);
     }
 
     async analyzeWorkspace(): Promise<DependencyGraph> {
+        console.log('Starting workspace analysis...');
         const files = await this.collectFiles();
+        console.log(`Found ${files.length} files to analyze`);
+        
         const nodes = await this.analyzeFiles(files);
+        console.log(`Generated ${nodes.length} nodes`);
+        
         const edges = this.generateEdges(nodes);
+        console.log(`Generated ${edges.length} edges`);
+        
         this.detectCycles(nodes);
+        const cycleCount = nodes.filter(n => n.hasCycle).length;
+        console.log(`Detected ${cycleCount} nodes with cycles`);
 
         return {
             nodes,
@@ -51,6 +61,10 @@ export class DependencyGraphAnalyzer {
             '**/*.d.ts'
         ];
 
+        console.log('Collecting files with patterns:', patterns);
+        console.log('Workspace root:', this.workspaceRoot);
+        console.log('Exclude patterns:', excludePatterns);
+
         const files = await globby(patterns, {
             cwd: this.workspaceRoot,
             ignore: excludePatterns,
@@ -58,6 +72,7 @@ export class DependencyGraphAnalyzer {
             absolute: true
         });
 
+        console.log('Collected files:', files);
         return files;
     }
 

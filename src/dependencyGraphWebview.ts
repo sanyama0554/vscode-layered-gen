@@ -64,6 +64,8 @@ export class DependencyGraphWebview {
     }
 
     private getWebviewContent(graph: DependencyGraph): string {
+        console.log('Generating webview content, nodes count:', graph.nodes.length);
+        
         const nodes = graph.nodes.map(node => {
             const fileName = node.id.split('/').pop() || node.id;
             const fileNameWithoutExt = fileName.replace(/\.(ts|tsx|js|jsx)$/, '');
@@ -71,30 +73,39 @@ export class DependencyGraphWebview {
                 id: node.id,
                 label: fileNameWithoutExt,
                 title: `${node.filePath}\n依存数: ${node.dependencies.length}${node.hasCycle ? '\n⚠️ 循環依存あり' : ''}`,
-                color: {
-                    background: node.hasCycle ? '#ff6b6b' : '#4ecdc4',
-                    border: node.hasCycle ? '#e74c3c' : '#26a69a',
-                    highlight: {
-                        background: node.hasCycle ? '#ff5252' : '#4db6ac',
-                        border: node.hasCycle ? '#c62828' : '#00695c'
-                    }
-                },
-                shape: 'box',
-                font: {
-                    color: '#ffffff',
-                    size: 14,
-                    face: 'Arial'
-                },
-                borderWidth: 2,
-                margin: 8
+                color: node.hasCycle ? '#ff6b6b' : '#4ecdc4',
+                shape: 'box'
             };
         });
+        
+        console.log('Generated nodes:', nodes.length, 'edges:', graph.edges.length);
 
         const edges = graph.edges.map(edge => ({
             from: edge.from,
             to: edge.to,
             arrows: 'to'
         }));
+
+        // データが空の場合のメッセージ
+        if (nodes.length === 0) {
+            return `<!DOCTYPE html>
+            <html>
+            <head>
+                <title>ファイル依存グラフ</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; padding: 20px; color: var(--vscode-editor-foreground); background-color: var(--vscode-editor-background);">
+                <h3>ファイル依存グラフ</h3>
+                <p>TypeScript/JavaScriptファイルが見つかりませんでした。</p>
+                <p>以下の条件を確認してください：</p>
+                <ul>
+                    <li>ワークスペースに .ts, .tsx, .js, .jsx ファイルが存在する</li>
+                    <li>ファイルがnode_modules以外のディレクトリにある</li>
+                    <li>import/export文を含むファイルがある</li>
+                </ul>
+                <button onclick="location.reload()">再読み込み</button>
+            </body>
+            </html>`;
+        }
 
         return `<!DOCTYPE html>
         <html>
@@ -209,21 +220,12 @@ export class DependencyGraphWebview {
                     },
                     nodes: {
                         font: {
-                            size: 14,
-                            color: '#ffffff',
-                            face: 'Arial',
-                            strokeWidth: 1,
-                            strokeColor: '#000000'
+                            size: 12,
+                            color: '#000000'
                         },
                         borderWidth: 2,
-                        margin: 8,
-                        widthConstraint: {
-                            minimum: 80,
-                            maximum: 200
-                        },
-                        heightConstraint: {
-                            minimum: 40
-                        }
+                        margin: 10,
+                        shape: 'box'
                     },
                     edges: {
                         arrows: {
@@ -244,8 +246,19 @@ export class DependencyGraphWebview {
                 };
 
                 function initNetwork() {
+                    console.log('Initializing network with nodes:', nodes.length, 'edges:', edges.length);
                     const container = document.getElementById('mynetworkid');
-                    network = new vis.Network(container, data, options);
+                    if (!container) {
+                        console.error('Container element not found!');
+                        return;
+                    }
+                    
+                    try {
+                        network = new vis.Network(container, data, options);
+                        console.log('Network initialized successfully');
+                    } catch (error) {
+                        console.error('Failed to initialize network:', error);
+                    }
 
                     network.on("click", function (params) {
                         if (params.nodes.length > 0) {
