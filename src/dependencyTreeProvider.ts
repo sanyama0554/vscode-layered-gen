@@ -112,8 +112,19 @@ export class DependencyTreeProvider implements vscode.TreeDataProvider<Dependenc
             ? vscode.TreeItemCollapsibleState.Collapsed 
             : vscode.TreeItemCollapsibleState.None;
 
-        const label = path.basename(node.filePath);
-        return new DependencyItem(label, collapsibleState, node.filePath, node.hasCycle);
+        const fileName = path.basename(node.filePath);
+        const fileNameWithoutExt = fileName.replace(/\.(ts|tsx|js|jsx)$/, '');
+        const dirName = path.dirname(node.id);
+        
+        const label = dirName === '.' ? fileNameWithoutExt : `${fileNameWithoutExt} (${dirName})`;
+        const item = new DependencyItem(label, collapsibleState, node.filePath, node.hasCycle);
+        
+        // 依存数を説明に追加
+        if (node.dependencies.length > 0) {
+            item.description = `${node.dependencies.length} deps`;
+        }
+        
+        return item;
     }
 
     getParent(element: DependencyItem): vscode.ProviderResult<DependencyItem> {

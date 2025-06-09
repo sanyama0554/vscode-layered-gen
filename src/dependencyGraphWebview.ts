@@ -64,13 +64,31 @@ export class DependencyGraphWebview {
     }
 
     private getWebviewContent(graph: DependencyGraph): string {
-        const nodes = graph.nodes.map(node => ({
-            id: node.id,
-            label: node.id.split('/').pop() || node.id,
-            title: node.filePath,
-            color: node.hasCycle ? '#ff6b6b' : '#4ecdc4',
-            shape: 'box'
-        }));
+        const nodes = graph.nodes.map(node => {
+            const fileName = node.id.split('/').pop() || node.id;
+            const fileNameWithoutExt = fileName.replace(/\.(ts|tsx|js|jsx)$/, '');
+            return {
+                id: node.id,
+                label: fileNameWithoutExt,
+                title: `${node.filePath}\n依存数: ${node.dependencies.length}${node.hasCycle ? '\n⚠️ 循環依存あり' : ''}`,
+                color: {
+                    background: node.hasCycle ? '#ff6b6b' : '#4ecdc4',
+                    border: node.hasCycle ? '#e74c3c' : '#26a69a',
+                    highlight: {
+                        background: node.hasCycle ? '#ff5252' : '#4db6ac',
+                        border: node.hasCycle ? '#c62828' : '#00695c'
+                    }
+                },
+                shape: 'box',
+                font: {
+                    color: '#ffffff',
+                    size: 14,
+                    face: 'Arial'
+                },
+                borderWidth: 2,
+                margin: 8
+            };
+        });
 
         const edges = graph.edges.map(edge => ({
             from: edge.from,
@@ -141,6 +159,7 @@ export class DependencyGraphWebview {
             </div>
             
             <div class="legend">
+                <h4 style="margin: 0 0 8px 0; font-size: 12px;">ファイル依存グラフ</h4>
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: #4ecdc4;"></div>
                     <span>通常ファイル</span>
@@ -148,6 +167,10 @@ export class DependencyGraphWebview {
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: #ff6b6b;"></div>
                     <span>循環依存あり</span>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--vscode-descriptionForeground);">
+                    💡 ノードをクリックでファイルを開く<br>
+                    🔍 ホバーで詳細情報を表示
                 </div>
             </div>
 
@@ -186,9 +209,21 @@ export class DependencyGraphWebview {
                     },
                     nodes: {
                         font: {
-                            color: 'var(--vscode-editor-foreground)'
+                            size: 14,
+                            color: '#ffffff',
+                            face: 'Arial',
+                            strokeWidth: 1,
+                            strokeColor: '#000000'
                         },
-                        borderWidth: 2
+                        borderWidth: 2,
+                        margin: 8,
+                        widthConstraint: {
+                            minimum: 80,
+                            maximum: 200
+                        },
+                        heightConstraint: {
+                            minimum: 40
+                        }
                     },
                     edges: {
                         arrows: {
