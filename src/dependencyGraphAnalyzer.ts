@@ -1,0 +1,224 @@
+import * as vscode from 'vscode';
+import globby from 'globby';
+import { Project, SourceFile, SyntaxKind } from 'ts-morph';
+import * as path from 'path';
+
+export interface DependencyNode {
+    id: string;
+    filePath: string;
+    dependencies: string[];
+    hasCycle: boolean;
+}
+
+export interface DependencyGraph {
+    nodes: DependencyNode[];
+    edges: Array<{ from: string; to: string }>;
+}
+
+export class DependencyGraphAnalyzer {
+    private project: Project;
+    private workspaceRoot: string;
+
+    constructor() {
+        this.project = new Project();
+        this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+    }
+
+    async analyzeWorkspace(): Promise<DependencyGraph> {
+        const files = await this.collectFiles();
+        const nodes = await this.analyzeFiles(files);
+        const edges = this.generateEdges(nodes);
+        this.detectCycles(nodes);
+
+        return {
+            nodes,
+            edges
+        };
+    }
+
+    private async collectFiles(): Promise<string[]> {
+        const patterns = [
+            '**/*.ts',
+            '**/*.tsx',
+            '**/*.js',
+            '**/*.jsx'
+        ];
+
+        const excludePatterns = [
+            '**/node_modules/**',
+            '**/out/**',
+            '**/dist/**',
+            '**/*.d.ts'
+        ];
+
+        const files = await globby(patterns, {
+            cwd: this.workspaceRoot,
+            ignore: excludePatterns,
+            gitignore: true,
+            absolute: true
+        });
+
+        return files;
+    }
+
+    private async analyzeFiles(filePaths: string[]): Promise<DependencyNode[]> {
+        const nodes: DependencyNode[] = [];
+
+        for (const filePath of filePaths) {
+            try {
+                const sourceFile = this.project.addSourceFileAtPath(filePath);
+                const dependencies = this.extractDependencies(sourceFile, filePath);
+                
+                nodes.push({
+                    id: this.getRelativePath(filePath),
+                    filePath,
+                    dependencies: dependencies.map(dep => this.getRelativePath(dep)),
+                    hasCycle: false
+                });
+            } catch (error) {
+                console.warn(`Failed to analyze file ${filePath}:`, error);
+            }
+        }
+
+        return nodes;
+    }
+
+    private extractDependencies(sourceFile: SourceFile, currentFilePath: string): string[] {
+        const dependencies: string[] = [];
+
+        sourceFile.getImportDeclarations().forEach(importDecl => {
+            const moduleSpecifier = importDecl.getModuleSpecifierValue();
+            const resolvedPath = this.resolveImportPath(moduleSpecifier, currentFilePath);
+            if (resolvedPath) {
+                dependencies.push(resolvedPath);
+            }
+        });
+
+        sourceFile.getExportDeclarations().forEach(exportDecl => {
+            const moduleSpecifier = exportDecl.getModuleSpecifierValue();
+            if (moduleSpecifier) {
+                const resolvedPath = this.resolveImportPath(moduleSpecifier, currentFilePath);
+                if (resolvedPath) {
+                    dependencies.push(resolvedPath);
+                }
+            }
+        });
+
+        const requireCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+            .filter(call => call.getExpression().getText() === 'require');
+        
+        requireCalls.forEach(call => {
+            const args = call.getArguments();
+            if (args.length > 0 && args[0].getKind() === SyntaxKind.StringLiteral) {
+                const moduleSpecifier = args[0].getText().slice(1, -1);
+                const resolvedPath = this.resolveImportPath(moduleSpecifier, currentFilePath);
+                if (resolvedPath) {
+                    dependencies.push(resolvedPath);
+                }
+            }
+        });
+
+        return dependencies;
+    }
+
+    private resolveImportPath(importPath: string, currentFilePath: string): string | null {
+        if (importPath.startsWith('.')) {
+            const resolvedPath = path.resolve(path.dirname(currentFilePath), importPath);
+            return this.findActualFile(resolvedPath);
+        }
+
+        if (importPath.startsWith('@/')) {
+            const srcPath = path.join(this.workspaceRoot, 'src', importPath.slice(2));
+            return this.findActualFile(srcPath);
+        }
+
+        if (!importPath.includes('/') || importPath.startsWith('@')) {
+            return null;
+        }
+
+        const absolutePath = path.join(this.workspaceRoot, importPath);
+        return this.findActualFile(absolutePath);
+    }
+
+    private findActualFile(basePath: string): string | null {
+        const extensions = ['.ts', '.tsx', '.js', '.jsx'];
+        
+        for (const ext of extensions) {
+            const filePath = basePath + ext;
+            if (require('fs').existsSync(filePath)) {
+                return filePath;
+            }
+        }
+
+        for (const ext of extensions) {
+            const indexPath = path.join(basePath, 'index' + ext);
+            if (require('fs').existsSync(indexPath)) {
+                return indexPath;
+            }
+        }
+
+        return null;
+    }
+
+    private generateEdges(nodes: DependencyNode[]): Array<{ from: string; to: string }> {
+        const edges: Array<{ from: string; to: string }> = [];
+
+        nodes.forEach(node => {
+            node.dependencies.forEach(dep => {
+                if (nodes.some(n => n.id === dep)) {
+                    edges.push({ from: node.id, to: dep });
+                }
+            });
+        });
+
+        return edges;
+    }
+
+    private detectCycles(nodes: DependencyNode[]): void {
+        const visited = new Set<string>();
+        const recursionStack = new Set<string>();
+        const cycleNodes = new Set<string>();
+
+        const dfs = (nodeId: string): boolean => {
+            if (recursionStack.has(nodeId)) {
+                cycleNodes.add(nodeId);
+                return true;
+            }
+
+            if (visited.has(nodeId)) {
+                return false;
+            }
+
+            visited.add(nodeId);
+            recursionStack.add(nodeId);
+
+            const node = nodes.find(n => n.id === nodeId);
+            if (node) {
+                for (const dep of node.dependencies) {
+                    if (dfs(dep)) {
+                        cycleNodes.add(nodeId);
+                    }
+                }
+            }
+
+            recursionStack.delete(nodeId);
+            return false;
+        };
+
+        nodes.forEach(node => {
+            if (!visited.has(node.id)) {
+                dfs(node.id);
+            }
+        });
+
+        nodes.forEach(node => {
+            if (cycleNodes.has(node.id)) {
+                node.hasCycle = true;
+            }
+        });
+    }
+
+    private getRelativePath(absolutePath: string): string {
+        return path.relative(this.workspaceRoot, absolutePath);
+    }
+}
