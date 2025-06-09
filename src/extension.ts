@@ -4,6 +4,7 @@ import { TemplateEditorProvider } from './templateEditorProvider';
 import { ProtobufFieldNumberer } from './protobufFieldNumberer';
 import { DependencyTreeProvider } from './dependencyTreeProvider';
 import { DependencyGraphWebview } from './dependencyGraphWebview';
+import { GraphQLDocsGenerator } from './graphqlDocsGenerator';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
@@ -13,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
     const protobufFieldNumberer = new ProtobufFieldNumberer();
     const dependencyTreeProvider = new DependencyTreeProvider();
     const dependencyGraphWebview = new DependencyGraphWebview(context);
+    const graphqlDocsGenerator = new GraphQLDocsGenerator();
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -141,6 +143,82 @@ export function activate(context: vscode.ExtensionContext) {
         setTimeout(() => dependencyTreeProvider.refresh(), 1000);
     });
     context.subscriptions.push(fileWatcher);
+
+    // GraphQL docs generation command
+    let generateGraphQLDocsCommand = vscode.commands.registerCommand('layered-gen.generateGraphQLDocs', async () => {
+        try {
+            const files = await vscode.workspace.findFiles('**/*.graphql', '**/node_modules/**');
+            
+            if (files.length === 0) {
+                vscode.window.showWarningMessage('GraphQLスキーマファイル(.graphql)が見つかりませんでした');
+                return;
+            }
+            
+            if (files.length === 1) {
+                await graphqlDocsGenerator.generateDocs(files[0].fsPath);
+            } else {
+                // 複数ファイルある場合は選択
+                const items = files.map(file => ({
+                    label: vscode.workspace.asRelativePath(file),
+                    detail: file.fsPath,
+                    file: file
+                }));
+                
+                const selected = await vscode.window.showQuickPick(items, {
+                    placeHolder: 'ドキュメント生成するGraphQLスキーマファイルを選択してください'
+                });
+                
+                if (selected) {
+                    await graphqlDocsGenerator.generateDocs(selected.file.fsPath);
+                }
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`GraphQLドキュメント生成エラー: ${error}`);
+        }
+    });
+    context.subscriptions.push(generateGraphQLDocsCommand);
+
+    // GraphQL file watcher for auto-generation
+    const graphqlFileWatcher = vscode.workspace.createFileSystemWatcher('**/*.graphql');
+    
+    graphqlFileWatcher.onDidChange(async (uri: vscode.Uri) => {
+        try {
+            console.log(`GraphQL file changed: ${uri.fsPath}`);
+            // 非同期でドキュメント生成（2秒後に実行）
+            setTimeout(async () => {
+                try {
+                    await graphqlDocsGenerator.generateDocs(uri.fsPath);
+                } catch (error) {
+                    console.error('Auto GraphQL docs generation failed:', error);
+                }
+            }, 2000);
+        } catch (error) {
+            console.error('GraphQL file change handler error:', error);
+        }
+    });
+    
+    context.subscriptions.push(graphqlFileWatcher);
+
+    // Alternative: Use workspace.onDidSaveTextDocument for .graphql files
+    const saveDocumentWatcher = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
+        if (document.fileName.endsWith('.graphql')) {
+            try {
+                console.log(`GraphQL file saved: ${document.fileName}`);
+                // 非同期でドキュメント生成（2秒後に実行）
+                setTimeout(async () => {
+                    try {
+                        await graphqlDocsGenerator.generateDocs(document.fileName);
+                    } catch (error) {
+                        console.error('Auto GraphQL docs generation failed:', error);
+                    }
+                }, 2000);
+            } catch (error) {
+                console.error('GraphQL save document handler error:', error);
+            }
+        }
+    });
+    
+    context.subscriptions.push(saveDocumentWatcher);
 }
 
 export function deactivate() {}
