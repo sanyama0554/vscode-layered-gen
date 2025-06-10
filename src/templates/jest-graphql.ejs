@@ -1,0 +1,60 @@
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { GraphQLModule } from '@nestjs/graphql';
+import { AppModule } from '../app.module';
+import request from 'supertest';
+
+describe('GraphQL (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleFixture = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+<% operations.forEach(operation => { %>
+  describe('<%= operation.type %> <%= operation.name %>', () => {
+    it('should <%= operation.name %>', async () => {
+      const <%= operation.type.toLowerCase() %> = `
+        <%= operation.type.toLowerCase() %> <%= operation.name %><% if (operation.arguments.length > 0) { %>(<% operation.arguments.forEach((arg, index) => { %>$<%= arg.name %>: <%= arg.type %><% if (index < operation.arguments.length - 1) { %>, <% } %><% }) %>)<% } %> {
+          <%= operation.name %><% if (operation.arguments.length > 0) { %>(<% operation.arguments.forEach((arg, index) => { %><%= arg.name %>: $<%= arg.name %><% if (index < operation.arguments.length - 1) { %>, <% } %><% }) %>)<% } %> {
+            # TODO: Add fields to query
+            id
+          }
+        }
+      `;
+
+      const variables = {
+        <% operation.arguments.forEach((arg, index) => { %>
+        <%= arg.name %>: <% if (arg.type.includes('String')) { %>'test-value'<% } else if (arg.type.includes('Int') || arg.type.includes('Float')) { %>123<% } else if (arg.type.includes('Boolean')) { %>true<% } else { %>{ /* TODO: Add test data */ }<% } %><% if (index < operation.arguments.length - 1) { %>,<% } %>
+        <% }) %>
+      };
+
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query: <%= operation.type.toLowerCase() %>,
+          <% if (operation.arguments.length > 0) { %>variables<% } %>
+        })
+        .expect(200);
+
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.<%= operation.name %>).toBeDefined();
+      expect(response.body.errors).toBeUndefined();
+    });
+
+    // TODO: Add more test cases
+    // it('should handle errors', async () => { });
+    // it('should validate input', async () => { });
+  });
+
+<% }) %>
+});

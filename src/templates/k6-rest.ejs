@@ -1,0 +1,49 @@
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export const options = {
+  vus: <%= vus %>,
+  duration: '<%= duration %>',
+};
+
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+
+export default function () {
+<% endpoints.forEach(endpoint => { %>
+  // Test <%= endpoint.method %> <%= endpoint.controllerPath %><%= endpoint.path %>
+  {
+    const url = `${BASE_URL}<%= endpoint.controllerPath %><%= endpoint.path %>`<% if (endpoint.parameters.some(p => p.type === 'path')) { %>.replace(<% endpoint.parameters.filter(p => p.type === 'path').forEach(param => { %>':<%= param.name %>', 'test-<%= param.name %>').<% }) %>replace(<% } %>;
+    
+    <% if (endpoint.method === 'GET') { %>
+    const params = {
+      <% endpoint.parameters.filter(p => p.type === 'query').forEach((param, index) => { %>
+      <%= param.name %>: 'test-value'<% if (index < endpoint.parameters.filter(p => p.type === 'query').length - 1) { %>,<% } %>
+      <% }) %>
+    };
+    
+    const response = http.get(url, { params });
+    <% } else if (endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH') { %>
+    const payload = JSON.stringify({
+      // TODO: Add request body
+      testField: 'test-value'
+    });
+    
+    const params = {
+      headers: { 'Content-Type': 'application/json' },
+    };
+    
+    const response = http.<%= endpoint.method.toLowerCase() %>(url, payload, params);
+    <% } else if (endpoint.method === 'DELETE') { %>
+    const response = http.del(url);
+    <% } %>
+    
+    check(response, {
+      '<%= endpoint.methodName %> status is <%= endpoint.method === 'POST' ? '201' : '200' %>': (r) => r.status === <%= endpoint.method === 'POST' ? '201' : '200' %>,
+      '<%= endpoint.methodName %> response time < 500ms': (r) => r.timings.duration < 500,
+    });
+    
+    sleep(1);
+  }
+
+<% }) %>
+}

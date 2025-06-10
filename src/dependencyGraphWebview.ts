@@ -4,9 +4,12 @@ import { DependencyGraphAnalyzer, DependencyGraph } from './dependencyGraphAnaly
 export class DependencyGraphWebview {
     private panel: vscode.WebviewPanel | undefined;
     private analyzer: DependencyGraphAnalyzer;
+    private filterPattern: string = '';
 
     constructor(private context: vscode.ExtensionContext) {
         this.analyzer = new DependencyGraphAnalyzer();
+        // Load saved filter pattern
+        this.filterPattern = this.context.workspaceState.get('dependencyGraphFilter', '');
     }
 
     async show(): Promise<void> {
@@ -36,11 +39,24 @@ export class DependencyGraphWebview {
                 switch (message.command) {
                     case 'openFile':
                         if (message.filePath) {
-                            const document = await vscode.workspace.openTextDocument(message.filePath);
-                            await vscode.window.showTextDocument(document);
+                            try {
+                                const uri = vscode.Uri.file(message.filePath);
+                                const document = await vscode.workspace.openTextDocument(uri);
+                                await vscode.window.showTextDocument(document, { 
+                                    selection: new vscode.Range(0, 0, 0, 0) 
+                                });
+                            } catch (error) {
+                                vscode.window.showErrorMessage(`ファイルを開けませんでした: ${message.filePath}`);
+                                console.error('Failed to open file:', error);
+                            }
                         }
                         break;
                     case 'refresh':
+                        await this.updateContent();
+                        break;
+                    case 'applyFilter':
+                        this.filterPattern = message.filterPattern || '';
+                        await this.context.workspaceState.update('dependencyGraphFilter', this.filterPattern);
                         await this.updateContent();
                         break;
                 }
@@ -56,7 +72,7 @@ export class DependencyGraphWebview {
         }
 
         try {
-            const graph = await this.analyzer.analyzeWorkspace();
+            const graph = await this.analyzer.analyzeWorkspace(this.filterPattern);
             this.panel.webview.html = this.getWebviewContent(graph);
         } catch (error) {
             vscode.window.showErrorMessage(`依存グラフの生成に失敗しました: ${error}`);
@@ -74,7 +90,8 @@ export class DependencyGraphWebview {
                 label: fileNameWithoutExt,
                 title: `${node.filePath}\n依存数: ${node.dependencies.length}${node.hasCycle ? '\n⚠️ 循環依存あり' : ''}`,
                 color: node.hasCycle ? '#ff6b6b' : '#4ecdc4',
-                shape: 'box'
+                shape: 'box',
+                filePath: node.filePath // Store the actual file path
             };
         });
         
@@ -160,10 +177,40 @@ export class DependencyGraphWebview {
                     margin-right: 8px;
                     border-radius: 2px;
                 }
+                .loading-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                }
+                .loading-overlay.active {
+                    display: flex;
+                }
+                .loading-spinner {
+                    color: var(--vscode-editor-foreground);
+                    font-size: 16px;
+                }
             </style>
         </head>
         <body>
             <div class="controls">
+                <input type="text" id="filterInput" placeholder="ディレクトリフィルタ (例: src/services/**/*)" style="
+                    background-color: var(--vscode-input-background);
+                    color: var(--vscode-input-foreground);
+                    border: 1px solid var(--vscode-input-border);
+                    padding: 6px 12px;
+                    margin-right: 8px;
+                    width: 300px;
+                    border-radius: 2px;
+                ">
+                <button onclick="applyFilter()">フィルタ適用</button>
+                <button onclick="clearFilter()">クリア</button>
                 <button onclick="refreshGraph()">更新</button>
                 <button onclick="fitNetwork()">全体表示</button>
                 <button onclick="togglePhysics()">物理演算ON/OFF</button>
@@ -186,11 +233,16 @@ export class DependencyGraphWebview {
             </div>
 
             <div id="mynetworkid"></div>
+            
+            <div id="loadingOverlay" class="loading-overlay">
+                <div class="loading-spinner">フィルタを適用中...</div>
+            </div>
 
             <script type="text/javascript">
                 const vscode = acquireVsCodeApi();
                 let network;
                 let physicsEnabled = true;
+                let debounceTimer = null;
 
                 const nodes = new vis.DataSet(${JSON.stringify(nodes)});
                 const edges = new vis.DataSet(${JSON.stringify(edges)});
@@ -264,10 +316,10 @@ export class DependencyGraphWebview {
                         if (params.nodes.length > 0) {
                             const nodeId = params.nodes[0];
                             const node = nodes.get(nodeId);
-                            if (node && node.title) {
+                            if (node && node.filePath) {
                                 vscode.postMessage({
                                     command: 'openFile',
-                                    filePath: node.title
+                                    filePath: node.filePath
                                 });
                             }
                         }
@@ -275,6 +327,7 @@ export class DependencyGraphWebview {
                 }
 
                 function refreshGraph() {
+                    showLoading();
                     vscode.postMessage({
                         command: 'refresh'
                     });
@@ -293,9 +346,73 @@ export class DependencyGraphWebview {
                     }
                 }
 
+                function applyFilter() {
+                    const filterInput = document.getElementById('filterInput');
+                    if (filterInput) {
+                        const filterPattern = filterInput.value.trim();
+                        showLoading();
+                        vscode.postMessage({
+                            command: 'applyFilter',
+                            filterPattern: filterPattern
+                        });
+                    }
+                }
+                
+                function showLoading() {
+                    const overlay = document.getElementById('loadingOverlay');
+                    if (overlay) {
+                        overlay.classList.add('active');
+                    }
+                }
+                
+                function hideLoading() {
+                    const overlay = document.getElementById('loadingOverlay');
+                    if (overlay) {
+                        overlay.classList.remove('active');
+                    }
+                }
+
+                function clearFilter() {
+                    const filterInput = document.getElementById('filterInput');
+                    if (filterInput) {
+                        filterInput.value = '';
+                        vscode.postMessage({
+                            command: 'applyFilter',
+                            filterPattern: ''
+                        });
+                    }
+                }
+
+                // Add event listeners for filter input
+                const filterInput = document.getElementById('filterInput');
+                if (filterInput) {
+                    // Apply filter on Enter key
+                    filterInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            applyFilter();
+                        }
+                    });
+
+                    // Debounced input
+                    filterInput.addEventListener('input', function() {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(applyFilter, 300);
+                    });
+                }
+
+                // Load saved filter on init
+                const savedFilter = '${this.getSavedFilter()}';
+                if (savedFilter && filterInput) {
+                    filterInput.value = savedFilter;
+                }
+
                 initNetwork();
             </script>
         </body>
         </html>`;
+    }
+
+    private getSavedFilter(): string {
+        return this.filterPattern.replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
 }

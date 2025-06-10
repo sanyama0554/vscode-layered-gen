@@ -1,0 +1,67 @@
+import request from 'supertest';
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { AppModule } from '../app.module';
+
+describe('<%= controllerName %> (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleFixture = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+<% endpoints.forEach(endpoint => { %>
+  describe('<%= endpoint.method %> <%= endpoint.controllerPath %><%= endpoint.path %>', () => {
+    it('should <%= endpoint.methodName %>', async () => {
+      <% if (endpoint.method === 'GET') { %>
+      const response = await request(app.getHttpServer())
+        .get('<%= endpoint.controllerPath %><%= endpoint.path %>'<% if (endpoint.parameters.some(p => p.type === 'path')) { %>.replace('<% endpoint.parameters.filter(p => p.type === 'path').forEach(param => { %>:<%= param.name %>', 'test-<%= param.name %>').<% }) %>replace('<% } %>)
+        <% endpoint.parameters.filter(p => p.type === 'query').forEach(param => { %>
+        .query({ <%= param.name %>: 'test-value' })
+        <% }) %>
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      <% } else if (endpoint.method === 'POST' || endpoint.method === 'PUT' || endpoint.method === 'PATCH') { %>
+      const response = await request(app.getHttpServer())
+        .<%= endpoint.method.toLowerCase() %>('<%= endpoint.controllerPath %><%= endpoint.path %>'<% if (endpoint.parameters.some(p => p.type === 'path')) { %>.replace('<% endpoint.parameters.filter(p => p.type === 'path').forEach(param => { %>:<%= param.name %>', 'test-<%= param.name %>').<% }) %>replace('<% } %>)
+        <% endpoint.parameters.filter(p => p.type === 'query').forEach(param => { %>
+        .query({ <%= param.name %>: 'test-value' })
+        <% }) %>
+        <% if (endpoint.parameters.some(p => p.type === 'body')) { %>
+        .send({
+          // TODO: Add request body
+          testField: 'test-value'
+        })
+        <% } %>
+        .expect(<%= endpoint.method === 'POST' ? '201' : '200' %>);
+
+      expect(response.body).toBeDefined();
+      <% } else if (endpoint.method === 'DELETE') { %>
+      const response = await request(app.getHttpServer())
+        .delete('<%= endpoint.controllerPath %><%= endpoint.path %>'<% if (endpoint.parameters.some(p => p.type === 'path')) { %>.replace('<% endpoint.parameters.filter(p => p.type === 'path').forEach(param => { %>:<%= param.name %>', 'test-<%= param.name %>').<% }) %>replace('<% } %>)
+        <% endpoint.parameters.filter(p => p.type === 'query').forEach(param => { %>
+        .query({ <%= param.name %>: 'test-value' })
+        <% }) %>
+        .expect(200);
+
+      expect(response.body).toBeDefined();
+      <% } %>
+    });
+
+    // TODO: Add more test cases
+    // it('should handle errors', async () => { });
+    // it('should validate input', async () => { });
+  });
+
+<% }) %>
+});
