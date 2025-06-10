@@ -25,9 +25,9 @@ export class DependencyGraphAnalyzer {
         console.log('DependencyGraphAnalyzer initialized with workspaceRoot:', this.workspaceRoot);
     }
 
-    async analyzeWorkspace(): Promise<DependencyGraph> {
-        console.log('Starting workspace analysis...');
-        const files = await this.collectFiles();
+    async analyzeWorkspace(filterPattern?: string): Promise<DependencyGraph> {
+        console.log('Starting workspace analysis with filter:', filterPattern);
+        const files = await this.collectFiles(filterPattern);
         console.log(`Found ${files.length} files to analyze`);
         
         const nodes = await this.analyzeFiles(files);
@@ -46,13 +46,31 @@ export class DependencyGraphAnalyzer {
         };
     }
 
-    private async collectFiles(): Promise<string[]> {
-        const patterns = [
+    private async collectFiles(filterPattern?: string): Promise<string[]> {
+        let patterns = [
             '**/*.ts',
             '**/*.tsx',
             '**/*.js',
             '**/*.jsx'
         ];
+
+        // Apply filter pattern if provided
+        if (filterPattern && filterPattern.trim()) {
+            const filters = filterPattern.split(',').map(f => f.trim()).filter(f => f);
+            patterns = filters.flatMap(filter => {
+                // Ensure filter ends with file extensions if it doesn't already
+                if (!filter.includes('*.')) {
+                    // Add all supported extensions to the filter
+                    return [
+                        `${filter}/**/*.ts`,
+                        `${filter}/**/*.tsx`,
+                        `${filter}/**/*.js`,
+                        `${filter}/**/*.jsx`
+                    ];
+                }
+                return [filter];
+            });
+        }
 
         const excludePatterns = [
             '**/node_modules/**',
