@@ -1,0 +1,34 @@
+# Test files
+**/*.spec.ts
+**/*.spec.tsx
+**/*.spec.js
+**/*.spec.jsx
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.test.jsx
+
+# Test directories
+**/tests/**
+**/test/**
+**/__tests__/**
+**/__mocks__/**
+
+# Build output
+**/dist/**
+**/out/**
+**/build/**
+**/coverage/**
+
+# Dependencies
+**/node_modules/**
+
+# Temp files
+**/temp/**
+**/tmp/**
+**/*.log
+**/.DS_Store
+
+# IDE files
+**/.vscode/**
+**/.idea/**
