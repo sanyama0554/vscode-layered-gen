@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import globby from 'globby';
 import { Project, SourceFile, SyntaxKind } from 'ts-morph';
 import * as path from 'path';
+import { IgnorePatternUtils } from './ignorePatternUtils';
 
 export interface DependencyNode {
     id: string;
@@ -72,12 +73,7 @@ export class DependencyGraphAnalyzer {
             });
         }
 
-        const excludePatterns = [
-            '**/node_modules/**',
-            '**/out/**',
-            '**/dist/**',
-            '**/*.d.ts'
-        ];
+        const excludePatterns = await IgnorePatternUtils.getExcludePatterns(this.workspaceRoot);
 
         console.log('Collecting files with patterns:', patterns);
         console.log('Workspace root:', this.workspaceRoot);
@@ -86,7 +82,7 @@ export class DependencyGraphAnalyzer {
         const files = await globby(patterns, {
             cwd: this.workspaceRoot,
             ignore: excludePatterns,
-            gitignore: true,
+            gitignore: false, // We handle gitignore ourselves through IgnorePatternUtils
             absolute: true
         });
 
