@@ -247,4 +247,167 @@ export const utils = {
             });
         }
     });
+
+    test('Should exclude files based on .depgraphignore patterns', async () => {
+        // Create .depgraphignore file
+        const depgraphIgnorePath = path.join(testWorkspaceDir, '.depgraphignore');
+        const ignoreContent = `
+# Exclude test files
+*.spec.ts
+*.test.ts
+test/**
+`;
+        fs.writeFileSync(depgraphIgnorePath, ignoreContent);
+
+        // Create test files
+        const testFiles = [
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'app.ts'),
+                content: `export class App {}`
+            },
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'app.spec.ts'),
+                content: `import { App } from './app';`
+            },
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'test', 'util.test.ts'),
+                content: `export const testUtil = {};`
+            }
+        ];
+
+        // Ensure test directories exist
+        testFiles.forEach(file => {
+            const dir = path.dirname(file.path);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+        });
+
+        // Write test files
+        testFiles.forEach(file => {
+            fs.writeFileSync(file.path, file.content);
+        });
+
+        try {
+            const graph = await analyzer.analyzeWorkspace();
+            
+            // app.ts should be included
+            const appNode = graph.nodes.find(node => 
+                node.filePath.includes('app.ts') && !node.filePath.includes('.spec')
+            );
+            assert.ok(appNode, 'app.ts should be in the dependency graph');
+
+            // app.spec.ts should be excluded
+            const specNode = graph.nodes.find(node => 
+                node.filePath.includes('app.spec.ts')
+            );
+            assert.ok(!specNode, 'app.spec.ts should be excluded from the dependency graph');
+
+            // test/util.test.ts should be excluded
+            const testNode = graph.nodes.find(node => 
+                node.filePath.includes('util.test.ts')
+            );
+            assert.ok(!testNode, 'util.test.ts should be excluded from the dependency graph');
+
+        } finally {
+            // Clean up
+            testFiles.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
+            
+            if (fs.existsSync(depgraphIgnorePath)) {
+                fs.unlinkSync(depgraphIgnorePath);
+            }
+
+            // Clean up directories
+            const testDir = path.join(testWorkspaceDir, 'test-samples', 'test');
+            if (fs.existsSync(testDir)) {
+                try {
+                    fs.rmdirSync(testDir);
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+        }
+    });
+
+    test('Should exclude files based on VSCode settings', async () => {
+        // Set VSCode exclude patterns
+        const config = vscode.workspace.getConfiguration('depGraph');
+        await config.update('exclude', ['**/mock/**', '**/*.mock.ts'], vscode.ConfigurationTarget.Workspace);
+
+        // Create test files
+        const testFiles = [
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'service.ts'),
+                content: `export class Service {}`
+            },
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'service.mock.ts'),
+                content: `export class MockService {}`
+            },
+            {
+                path: path.join(testWorkspaceDir, 'test-samples', 'mock', 'data.ts'),
+                content: `export const mockData = {};`
+            }
+        ];
+
+        // Ensure test directories exist
+        testFiles.forEach(file => {
+            const dir = path.dirname(file.path);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+        });
+
+        // Write test files
+        testFiles.forEach(file => {
+            fs.writeFileSync(file.path, file.content);
+        });
+
+        try {
+            const graph = await analyzer.analyzeWorkspace();
+            
+            // service.ts should be included
+            const serviceNode = graph.nodes.find(node => 
+                node.filePath.includes('service.ts') && !node.filePath.includes('.mock')
+            );
+            assert.ok(serviceNode, 'service.ts should be in the dependency graph');
+
+            // service.mock.ts should be excluded
+            const mockNode = graph.nodes.find(node => 
+                node.filePath.includes('service.mock.ts')
+            );
+            assert.ok(!mockNode, 'service.mock.ts should be excluded from the dependency graph');
+
+            // mock/data.ts should be excluded
+            const mockDataNode = graph.nodes.find(node => 
+                node.filePath.includes('mock') && node.filePath.includes('data.ts')
+            );
+            assert.ok(!mockDataNode, 'mock/data.ts should be excluded from the dependency graph');
+
+        } finally {
+            // Clean up
+            testFiles.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
+
+            // Clean up directories
+            const mockDir = path.join(testWorkspaceDir, 'test-samples', 'mock');
+            if (fs.existsSync(mockDir)) {
+                try {
+                    fs.rmdirSync(mockDir);
+                } catch (e) {
+                    // Ignore errors
+                }
+            }
+
+            // Reset VSCode settings
+            await config.update('exclude', undefined, vscode.ConfigurationTarget.Workspace);
+        }
+    });
 });
