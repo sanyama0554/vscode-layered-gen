@@ -138,6 +138,14 @@
           "type": "string",
           "default": "30s",
           "description": "k6ロードテストの実行時間"
+        },
+        "depGraph.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "ファイル依存グラフで除外するパターン（glob形式）。例: [\"**/*.spec.ts\", \"test/**\"]"
         }
       }
     }

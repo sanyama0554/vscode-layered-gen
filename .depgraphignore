@@ -1,0 +1,34 @@
+# Dependency graph ignore patterns
+# This file defines patterns for files to exclude from dependency graph analysis
+# Similar to .gitignore syntax
+
+# Testing files
+**/*.test.ts
+**/*.spec.ts
+**/*.test.js
+**/*.spec.js
+
+# Build output directories
+out/
+dist/
+build/
+
+# Coverage reports
+coverage/
+
+# Temporary files
+tmp/
+temp/
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# Log files
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production

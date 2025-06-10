@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package test;
+
+message User {
+    string name;
+    int32 age;
+    repeated string emails;
+}
+
+message Order {
+    string id;
+    User user;
+    double total;
+}

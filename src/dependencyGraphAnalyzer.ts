@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import globby from 'globby';
 import { Project, SourceFile, SyntaxKind } from 'ts-morph';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export interface DependencyNode {
     id: string;
@@ -72,12 +73,8 @@ export class DependencyGraphAnalyzer {
             });
         }
 
-        const excludePatterns = [
-            '**/node_modules/**',
-            '**/out/**',
-            '**/dist/**',
-            '**/*.d.ts'
-        ];
+        // Get exclude patterns from configuration and .depgraphignore
+        const excludePatterns = await this.getExcludePatterns();
 
         console.log('Collecting files with patterns:', patterns);
         console.log('Workspace root:', this.workspaceRoot);
@@ -253,5 +250,114 @@ export class DependencyGraphAnalyzer {
 
     private getRelativePath(absolutePath: string): string {
         return path.relative(this.workspaceRoot, absolutePath);
+    }
+
+    /**
+     * Get exclude patterns from VSCode settings and .depgraphignore file
+     */
+    private async getExcludePatterns(): Promise<string[]> {
+        // Default exclude patterns
+        const defaultPatterns = [
+            '**/node_modules/**',
+            '**/out/**',
+            '**/dist/**',
+            '**/*.d.ts'
+        ];
+
+        // Get patterns from VSCode settings
+        const config = vscode.workspace.getConfiguration('depGraph');
+        const settingsPatterns: string[] = config.get('exclude', []);
+
+        // If settings patterns exist, use them (override)
+        if (settingsPatterns.length > 0) {
+            console.log('Using exclude patterns from VSCode settings:', settingsPatterns);
+            return [...defaultPatterns, ...settingsPatterns];
+        }
+
+        // Try to read .depgraphignore file
+        const depgraphignorePatterns = await this.readDepgraphignoreFile();
+        if (depgraphignorePatterns.length > 0) {
+            console.log('Using exclude patterns from .depgraphignore:', depgraphignorePatterns);
+            return [...defaultPatterns, ...depgraphignorePatterns];
+        }
+
+        // Fallback to .gitignore patterns
+        const gitignorePatterns = await this.readGitignoreFile();
+        if (gitignorePatterns.length > 0) {
+            console.log('Using exclude patterns from .gitignore:', gitignorePatterns);
+            return [...defaultPatterns, ...gitignorePatterns];
+        }
+
+        console.log('Using default exclude patterns only:', defaultPatterns);
+        return defaultPatterns;
+    }
+
+    /**
+     * Read and parse .depgraphignore file
+     */
+    private async readDepgraphignoreFile(): Promise<string[]> {
+        const depgraphignorePath = path.join(this.workspaceRoot, '.depgraphignore');
+        
+        try {
+            if (!fs.existsSync(depgraphignorePath)) {
+                return [];
+            }
+
+            const content = fs.readFileSync(depgraphignorePath, 'utf8');
+            return this.parseIgnoreFile(content);
+        } catch (error) {
+            console.warn('Failed to read .depgraphignore file:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Read and parse .gitignore file as fallback
+     */
+    private async readGitignoreFile(): Promise<string[]> {
+        const gitignorePath = path.join(this.workspaceRoot, '.gitignore');
+        
+        try {
+            if (!fs.existsSync(gitignorePath)) {
+                return [];
+            }
+
+            const content = fs.readFileSync(gitignorePath, 'utf8');
+            return this.parseIgnoreFile(content);
+        } catch (error) {
+            console.warn('Failed to read .gitignore file:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Parse ignore file content into glob patterns
+     */
+    private parseIgnoreFile(content: string): string[] {
+        return content
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => {
+                // Skip empty lines and comments
+                return line && !line.startsWith('#');
+            })
+            .map(pattern => {
+                // Handle negation patterns (starting with !)
+                if (pattern.startsWith('!')) {
+                    return pattern; // Keep negation patterns as-is
+                }
+                
+                // Convert directory patterns to glob patterns
+                if (pattern.endsWith('/')) {
+                    return pattern + '**';
+                }
+                
+                // Ensure pattern works for both files and directories
+                if (!pattern.includes('*') && !pattern.includes('/')) {
+                    return `**/${pattern}/**`;
+                }
+                
+                return pattern;
+            });
     }
 }
