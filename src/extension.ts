@@ -5,6 +5,7 @@ import { ProtobufFieldNumberer } from './protobufFieldNumberer';
 import { DependencyTreeProvider } from './dependencyTreeProvider';
 import { DependencyGraphWebview } from './dependencyGraphWebview';
 import { GraphQLDocsGenerator } from './graphqlDocsGenerator';
+import { ApiTestSkeletonGenerator } from './apiTestSkeletonGenerator';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Layered Architecture Generator is now active!');
@@ -15,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
     const dependencyTreeProvider = new DependencyTreeProvider();
     const dependencyGraphWebview = new DependencyGraphWebview(context);
     const graphqlDocsGenerator = new GraphQLDocsGenerator();
+    const apiTestSkeletonGenerator = new ApiTestSkeletonGenerator();
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -219,6 +221,44 @@ export function activate(context: vscode.ExtensionContext) {
     });
     
     context.subscriptions.push(saveDocumentWatcher);
+
+    // Register API test skeleton generation command
+    let generateApiTestSkeletonsCommand = vscode.commands.registerCommand('layered-gen.generateApiTestSkeletons', async () => {
+        try {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders) {
+                vscode.window.showErrorMessage('ワークスペースフォルダが開かれていません');
+                return;
+            }
+
+            const rootPath = workspaceFolders[0].uri.fsPath;
+            
+            // Ask if user wants to generate k6 tests
+            const generateK6 = await vscode.window.showQuickPick(['Jest tests only', 'Jest tests + k6 load tests'], {
+                placeHolder: 'テストの種類を選択してください'
+            });
+
+            const options: any = {
+                e2e: generateK6 === 'Jest tests + k6 load tests'
+            };
+
+            // If k6 tests are requested, get configuration
+            if (options.e2e) {
+                const config = vscode.workspace.getConfiguration('layered-gen.k6');
+                options.k6Config = {
+                    vus: config.get('vus', 10),
+                    duration: config.get('duration', '30s')
+                };
+            }
+
+            await apiTestSkeletonGenerator.generateTestSkeletons(rootPath, options);
+        } catch (error) {
+            vscode.window.showErrorMessage(`APIテストスケルトン生成エラー: ${error}`);
+        }
+    });
+    context.subscriptions.push(generateApiTestSkeletonsCommand);
 }
 
-export function deactivate() {}
+export function deactivate() {
+    // Clean up resources if needed
+}

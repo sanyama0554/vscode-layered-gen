@@ -45,6 +45,11 @@
         "command": "layered-gen.generateGraphQLDocs",
         "title": "GraphQLスキーマドキュメント生成",
         "category": "Layered Generator"
+      },
+      {
+        "command": "layered-gen.generateApiTestSkeletons",
+        "title": "Generate Test Skeletons",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
@@ -123,6 +128,16 @@
           "type": "boolean",
           "default": false,
           "description": "GraphQLドキュメント生成後に自動でGitコミットする"
+        },
+        "layered-gen.k6.vus": {
+          "type": "number",
+          "default": 10,
+          "description": "k6ロードテストの仮想ユーザー数"
+        },
+        "layered-gen.k6.duration": {
+          "type": "string",
+          "default": "30s",
+          "description": "k6ロードテストの実行時間"
         }
       }
     }
@@ -136,10 +151,12 @@
     "test": "node ./out/test/runTest.js"
   },
   "dependencies": {
+    "@types/ejs": "^3.1.5",
+    "ejs": "^3.1.10",
     "globby": "^11.1.0",
-    "ts-morph": "^19.0.0",
     "graphql": "^16.8.1",
-    "simple-git": "^3.19.1"
+    "simple-git": "^3.19.1",
+    "ts-morph": "^19.0.0"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
