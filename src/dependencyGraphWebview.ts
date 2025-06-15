@@ -5,6 +5,7 @@ export class DependencyGraphWebview {
     private panel: vscode.WebviewPanel | undefined;
     private analyzer: DependencyGraphAnalyzer;
     private filterPattern: string = '';
+    private isUpdating: boolean = false;
 
     constructor(private context: vscode.ExtensionContext) {
         this.analyzer = new DependencyGraphAnalyzer();
@@ -52,9 +53,19 @@ export class DependencyGraphWebview {
                         }
                         break;
                     case 'refresh':
+                        if (this.isUpdating) {
+                            // 既に更新中の場合はスキップ
+                            this.panel?.webview.postMessage({ command: 'hideLoading' });
+                            return;
+                        }
                         await this.updateContent();
                         break;
                     case 'applyFilter':
+                        if (this.isUpdating) {
+                            // 既に更新中の場合はスキップ
+                            this.panel?.webview.postMessage({ command: 'hideLoading' });
+                            return;
+                        }
                         this.filterPattern = message.filterPattern || '';
                         await this.context.workspaceState.update('dependencyGraphFilter', this.filterPattern);
                         await this.updateContent();
@@ -67,15 +78,20 @@ export class DependencyGraphWebview {
     }
 
     private async updateContent(): Promise<void> {
-        if (!this.panel) {
+        if (!this.panel || this.isUpdating) {
             return;
         }
 
+        this.isUpdating = true;
         try {
             const graph = await this.analyzer.analyzeWorkspace(this.filterPattern);
             this.panel.webview.html = this.getWebviewContent(graph);
         } catch (error) {
             vscode.window.showErrorMessage(`依存グラフの生成に失敗しました: ${error}`);
+            // エラー時にもローディングを非表示にする
+            this.panel?.webview.postMessage({ command: 'hideLoading' });
+        } finally {
+            this.isUpdating = false;
         }
     }
 
@@ -243,6 +259,7 @@ export class DependencyGraphWebview {
                 let network;
                 let physicsEnabled = true;
                 let debounceTimer = null;
+                let isFiltering = false;
 
                 const nodes = new vis.DataSet(${JSON.stringify(nodes)});
                 const edges = new vis.DataSet(${JSON.stringify(edges)});
@@ -251,6 +268,17 @@ export class DependencyGraphWebview {
                     nodes: nodes,
                     edges: edges
                 };
+
+                // VSCodeからのメッセージを受信
+                window.addEventListener('message', event => {
+                    const message = event.data;
+                    switch (message.command) {
+                        case 'hideLoading':
+                            hideLoading();
+                            isFiltering = false;
+                            break;
+                    }
+                });
 
                 const options = {
                     layout: {
@@ -327,6 +355,10 @@ export class DependencyGraphWebview {
                 }
 
                 function refreshGraph() {
+                    if (isFiltering) {
+                        return; // 既にフィルタリング中の場合はスキップ
+                    }
+                    isFiltering = true;
                     showLoading();
                     vscode.postMessage({
                         command: 'refresh'
@@ -347,9 +379,14 @@ export class DependencyGraphWebview {
                 }
 
                 function applyFilter() {
+                    if (isFiltering) {
+                        return; // 既にフィルタリング中の場合はスキップ
+                    }
+                    
                     const filterInput = document.getElementById('filterInput');
                     if (filterInput) {
                         const filterPattern = filterInput.value.trim();
+                        isFiltering = true;
                         showLoading();
                         vscode.postMessage({
                             command: 'applyFilter',
@@ -376,6 +413,8 @@ export class DependencyGraphWebview {
                     const filterInput = document.getElementById('filterInput');
                     if (filterInput) {
                         filterInput.value = '';
+                        isFiltering = true;
+                        showLoading();
                         vscode.postMessage({
                             command: 'applyFilter',
                             filterPattern: ''
@@ -393,10 +432,10 @@ export class DependencyGraphWebview {
                         }
                     });
 
-                    // Debounced input
+                    // Debounced input with increased delay
                     filterInput.addEventListener('input', function() {
                         clearTimeout(debounceTimer);
-                        debounceTimer = setTimeout(applyFilter, 300);
+                        debounceTimer = setTimeout(applyFilter, 1000); // 1秒に増やして負荷を軽減
                     });
                 }
 
@@ -407,6 +446,12 @@ export class DependencyGraphWebview {
                 }
 
                 initNetwork();
+                
+                // ページ読み込み完了時にローディングを非表示
+                window.addEventListener('load', function() {
+                    hideLoading();
+                    isFiltering = false;
+                });
             </script>
         </body>
         </html>`;
