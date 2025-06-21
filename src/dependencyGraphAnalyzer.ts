@@ -59,6 +59,10 @@ export class DependencyGraphAnalyzer {
         if (filterPattern && filterPattern.trim()) {
             const filters = filterPattern.split(',').map(f => f.trim()).filter(f => f);
             patterns = filters.flatMap(filter => {
+                // Remove any absolute path prefixes to ensure we stay within workspace
+                if (filter.startsWith('/')) {
+                    filter = filter.substring(1);
+                }
                 // Ensure filter ends with file extensions if it doesn't already
                 if (!filter.includes('*.')) {
                     // Add all supported extensions to the filter
@@ -79,15 +83,31 @@ export class DependencyGraphAnalyzer {
         console.log('Workspace root:', this.workspaceRoot);
         console.log('Exclude patterns:', excludePatterns);
 
-        const files = await globby(patterns, {
-            cwd: this.workspaceRoot,
-            ignore: excludePatterns,
-            gitignore: false, // We handle gitignore ourselves through IgnorePatternUtils
-            absolute: true
-        });
+        try {
+            const files = await globby(patterns, {
+                cwd: this.workspaceRoot,
+                ignore: excludePatterns,
+                gitignore: false, // We handle gitignore ourselves through IgnorePatternUtils
+                absolute: true,
+                followSymbolicLinks: false, // Don't follow symlinks to prevent scanning outside workspace
+                onlyFiles: true, // Only return files, not directories
+                dot: false, // Don't include hidden files by default
+                unique: true // Ensure unique results
+            });
 
-        console.log('Collected files:', files);
-        return files;
+            console.log('Collected files:', files);
+            return files;
+        } catch (error) {
+            console.error('Error collecting files:', error);
+            // If we get a permission error, show a user-friendly message
+            if (error instanceof Error && error.message.includes('EACCES')) {
+                vscode.window.showErrorMessage(
+                    '依存グラフの生成中にアクセス権限エラーが発生しました。ワークスペース内のファイルのみをスキャンするようにしてください。'
+                );
+            }
+            // Return empty array to continue with partial results
+            return [];
+        }
     }
 
     private async analyzeFiles(filePaths: string[]): Promise<DependencyNode[]> {
