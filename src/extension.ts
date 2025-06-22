@@ -8,15 +8,16 @@ import { GraphQLDocsGenerator } from './graphqlDocsGenerator';
 import { ApiTestSkeletonGenerator } from './apiTestSkeletonGenerator';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Layered Architecture Generator is now active!');
+    try {
+        console.log('Layered Architecture Generator is now active!');
 
-    const templateManager = new TemplateManager();
-    const templateEditorProvider = new TemplateEditorProvider(context, templateManager);
-    const protobufFieldNumberer = new ProtobufFieldNumberer();
-    const dependencyTreeProvider = new DependencyTreeProvider();
-    const dependencyGraphWebview = new DependencyGraphWebview(context);
-    const graphqlDocsGenerator = new GraphQLDocsGenerator();
-    const apiTestSkeletonGenerator = new ApiTestSkeletonGenerator();
+        const templateManager = new TemplateManager();
+        const templateEditorProvider = new TemplateEditorProvider(context, templateManager);
+        const protobufFieldNumberer = new ProtobufFieldNumberer();
+        const dependencyTreeProvider = new DependencyTreeProvider();
+        const dependencyGraphWebview = new DependencyGraphWebview(context);
+        const graphqlDocsGenerator = new GraphQLDocsGenerator();
+        const apiTestSkeletonGenerator = new ApiTestSkeletonGenerator();
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {
@@ -257,6 +258,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(generateApiTestSkeletonsCommand);
+    } catch (error) {
+        console.error('Failed to activate extension:', error);
+        vscode.window.showErrorMessage(`拡張機能のアクティベーションに失敗しました: ${error}`);
+    }
 }
 
 export function deactivate() {

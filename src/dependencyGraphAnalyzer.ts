@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import globby from 'globby';
-import { Project, SourceFile, SyntaxKind } from 'ts-morph';
+import { Project, SourceFile, SyntaxKind, ts } from 'ts-morph';
 import * as path from 'path';
 import { IgnorePatternUtils } from './ignorePatternUtils';
 
@@ -21,9 +21,18 @@ export class DependencyGraphAnalyzer {
     private workspaceRoot: string;
 
     constructor() {
-        this.project = new Project();
         this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
         console.log('DependencyGraphAnalyzer initialized with workspaceRoot:', this.workspaceRoot);
+        
+        // Initialize ts-morph Project with proper configuration
+        this.project = new Project({
+            // Don't specify tsConfigFilePath to avoid searching for it
+            skipAddingFilesFromTsConfig: true,
+            compilerOptions: {
+                allowJs: true,
+                jsx: ts.JsxEmit.React
+            }
+        });
     }
 
     async analyzeWorkspace(filterPattern?: string): Promise<DependencyGraph> {

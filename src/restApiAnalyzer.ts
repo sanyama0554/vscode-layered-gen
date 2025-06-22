@@ -1,4 +1,4 @@
-import { Project, SourceFile, Decorator, MethodDeclaration, ClassDeclaration } from 'ts-morph';
+import { Project, SourceFile, Decorator, MethodDeclaration, ClassDeclaration, ts } from 'ts-morph';
 import * as path from 'path';
 
 export interface RestEndpoint {
@@ -18,9 +18,13 @@ export class RestApiAnalyzer {
     private project: Project;
 
     constructor() {
+        // Initialize ts-morph Project without specifying tsconfig path
         this.project = new Project({
-            tsConfigFilePath: path.join(process.cwd(), 'tsconfig.json'),
-            skipAddingFilesFromTsConfig: true
+            skipAddingFilesFromTsConfig: true,
+            compilerOptions: {
+                allowJs: true,
+                jsx: ts.JsxEmit.React
+            }
         });
     }
 
