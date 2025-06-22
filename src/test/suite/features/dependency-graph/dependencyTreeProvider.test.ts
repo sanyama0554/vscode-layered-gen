@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { DependencyTreeProvider, DependencyItem } from '../../dependencyTreeProvider';
+import { DependencyTreeProvider, DependencyItem } from '../../../../features/dependency-graph/dependencyTreeProvider';
 
 suite('DependencyTreeProvider Test Suite', () => {
     let treeProvider: DependencyTreeProvider;

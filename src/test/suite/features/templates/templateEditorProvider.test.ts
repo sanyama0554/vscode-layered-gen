@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { TemplateEditorProvider } from '../../templateEditorProvider';
-import { TemplateManager } from '../../templateManager';
+import { TemplateEditorProvider } from '../../../../features/templates/templateEditorProvider';
+import { TemplateManager } from '../../../../features/templates/templateManager';
 
 suite('TemplateEditorProvider Test Suite', () => {
     let context: vscode.ExtensionContext;

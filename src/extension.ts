@@ -1,11 +1,9 @@
 import * as vscode from 'vscode';
-import { TemplateManager } from './templateManager';
-import { TemplateEditorProvider } from './templateEditorProvider';
-import { ProtobufFieldNumberer } from './protobufFieldNumberer';
-import { DependencyTreeProvider } from './dependencyTreeProvider';
-import { DependencyGraphWebview } from './dependencyGraphWebview';
-import { GraphQLDocsGenerator } from './graphqlDocsGenerator';
-import { ApiTestSkeletonGenerator } from './apiTestSkeletonGenerator';
+import { TemplateManager, TemplateEditorProvider } from './features/templates';
+import { ProtobufFieldNumberer } from './features/protobuf';
+import { DependencyTreeProvider, DependencyGraphWebview } from './features/dependency-graph';
+import { GraphQLDocsGenerator } from './features/graphql';
+import { ApiTestSkeletonGenerator } from './features/api-analysis';
 
 export function activate(context: vscode.ExtensionContext) {
     try {

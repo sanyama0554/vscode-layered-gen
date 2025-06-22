@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { GraphQLDocsGenerator } from '../../graphqlDocsGenerator';
+import { GraphQLDocsGenerator } from '../../../../features/graphql/graphqlDocsGenerator';
 
 suite('GraphQLDocsGenerator Test Suite', () => {
     let generator: GraphQLDocsGenerator;

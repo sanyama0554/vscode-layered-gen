@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as ejs from 'ejs';
 import { RestApiAnalyzer, RestEndpoint } from './restApiAnalyzer';
-import { GraphQLAnalyzer, GraphQLOperation } from './graphqlAnalyzer';
+import { GraphQLAnalyzer, GraphQLOperation } from '../graphql';
 
 export interface K6Config {
     vus: number;

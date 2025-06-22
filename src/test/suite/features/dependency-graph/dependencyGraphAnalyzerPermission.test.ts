@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { DependencyGraphAnalyzer } from '../../dependencyGraphAnalyzer';
+import { DependencyGraphAnalyzer } from '../../../../features/dependency-graph/dependencyGraphAnalyzer';
 import * as globby from 'globby';
 
 suite('DependencyGraphAnalyzer Permission Error Test Suite', () => {

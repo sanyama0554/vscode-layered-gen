@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { DependencyGraphAnalyzer } from '../../dependencyGraphAnalyzer';
+import { DependencyGraphAnalyzer } from '../../../../features/dependency-graph/dependencyGraphAnalyzer';
 
 suite('DependencyGraphAnalyzer Test Suite', () => {
     let testWorkspaceDir: string;

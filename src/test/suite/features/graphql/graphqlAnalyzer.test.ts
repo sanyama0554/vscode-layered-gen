@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { GraphQLAnalyzer } from '../../graphqlAnalyzer';
+import { GraphQLAnalyzer } from '../../../../features/graphql/graphqlAnalyzer';
 
 suite('GraphQLAnalyzer Test Suite', () => {
     let analyzer: GraphQLAnalyzer;

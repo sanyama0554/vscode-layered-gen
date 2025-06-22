@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ProtobufFieldNumberer } from '../../protobufFieldNumberer';
+import { ProtobufFieldNumberer } from '../../../../features/protobuf/protobufFieldNumberer';
 import * as path from 'path';
 import * as fs from 'fs';
 
