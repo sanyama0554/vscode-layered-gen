@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as path from 'path';
-import { RestApiAnalyzer } from '../../restApiAnalyzer';
+import { RestApiAnalyzer } from '../../../../features/api-analysis/restApiAnalyzer';
 
 suite('RestApiAnalyzer Test Suite', () => {
     let analyzer: RestApiAnalyzer;

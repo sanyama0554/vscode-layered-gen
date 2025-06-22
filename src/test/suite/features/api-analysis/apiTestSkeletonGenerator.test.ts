@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ApiTestSkeletonGenerator } from '../../apiTestSkeletonGenerator';
+import { ApiTestSkeletonGenerator } from '../../../../features/api-analysis/apiTestSkeletonGenerator';
 
 suite('ApiTestSkeletonGenerator Test Suite', () => {
     let generator: ApiTestSkeletonGenerator;

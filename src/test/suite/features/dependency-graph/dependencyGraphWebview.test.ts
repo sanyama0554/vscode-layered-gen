@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { DependencyGraphWebview } from '../../dependencyGraphWebview';
+import { DependencyGraphWebview } from '../../../../features/dependency-graph/dependencyGraphWebview';
 
 suite('DependencyGraphWebview Test Suite', () => {
     let context: vscode.ExtensionContext;

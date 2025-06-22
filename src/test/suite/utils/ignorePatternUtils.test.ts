@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { IgnorePatternUtils } from '../../ignorePatternUtils';
+import { IgnorePatternUtils } from '../../../utils/ignorePatternUtils';
 
 suite('IgnorePatternUtils Test Suite', () => {
     let testWorkspaceDir: string;

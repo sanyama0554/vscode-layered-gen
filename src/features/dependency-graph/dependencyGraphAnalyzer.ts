@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import globby from 'globby';
 import { Project, SourceFile, SyntaxKind, ts } from 'ts-morph';
 import * as path from 'path';
-import { IgnorePatternUtils } from './ignorePatternUtils';
+import { IgnorePatternUtils } from '../../utils';
 
 export interface DependencyNode {
     id: string;

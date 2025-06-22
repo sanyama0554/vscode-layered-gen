@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { TemplateManager } from '../../templateManager';
+import { TemplateManager } from '../../../../features/templates/templateManager';
 
 suite('TemplateManager Test Suite', () => {
     const testWorkspace = path.join(__dirname, 'test-workspace');
