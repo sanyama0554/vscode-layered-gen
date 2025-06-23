@@ -108,9 +108,28 @@ export function activate(context: vscode.ExtensionContext) {
     // Register dependency graph webview command
     let showDependencyGraphCommand = vscode.commands.registerCommand('layered-gen.showDependencyGraph', async () => {
         try {
-            await dependencyGraphWebview.show();
-        } catch (error) {
-            vscode.window.showErrorMessage(`依存グラフ表示エラー: ${error}`);
+            // 進捗表示とキャンセル対応
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Generating dependency graph...',
+                cancellable: true
+            }, async (progress, token) => {
+                progress.report({ increment: 0, message: 'Analyzing workspace...' });
+                
+                // まず依存グラフを生成
+                await dependencyTreeProvider.refresh(token);
+                
+                progress.report({ increment: 50, message: 'Creating visualization...' });
+                
+                // その後Webviewを表示
+                await dependencyGraphWebview.show();
+                
+                progress.report({ increment: 100, message: 'Complete' });
+            });
+        } catch (error: any) {
+            if (error.message !== 'Analysis cancelled') {
+                vscode.window.showErrorMessage(`依存グラフ表示エラー: ${error}`);
+            }
         }
     });
     context.subscriptions.push(showDependencyGraphCommand);
@@ -127,21 +146,42 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(openFileCommand);
 
     // Register refresh command
-    let refreshDependencyGraphCommand = vscode.commands.registerCommand('layered-gen.refreshDependencyGraph', () => {
-        dependencyTreeProvider.refresh();
+    let refreshDependencyGraphCommand = vscode.commands.registerCommand('layered-gen.refreshDependencyGraph', async () => {
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Refreshing dependency graph...',
+                cancellable: true
+            }, async (progress, token) => {
+                await dependencyTreeProvider.refresh(token);
+            });
+        } catch (error: any) {
+            if (error.message !== 'Analysis cancelled') {
+                vscode.window.showErrorMessage(`依存グラフ更新エラー: ${error}`);
+            }
+        }
     });
     context.subscriptions.push(refreshDependencyGraphCommand);
 
     // File watcher for auto-refresh
     const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.{ts,tsx,js,jsx}');
     fileWatcher.onDidChange(() => {
-        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        const config = vscode.workspace.getConfiguration('layered-gen');
+        if (config.get('enableAutoGraphGeneration', false)) {
+            setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        }
     });
     fileWatcher.onDidCreate(() => {
-        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        const config = vscode.workspace.getConfiguration('layered-gen');
+        if (config.get('enableAutoGraphGeneration', false)) {
+            setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        }
     });
     fileWatcher.onDidDelete(() => {
-        setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        const config = vscode.workspace.getConfiguration('layered-gen');
+        if (config.get('enableAutoGraphGeneration', false)) {
+            setTimeout(() => dependencyTreeProvider.refresh(), 1000);
+        }
     });
     context.subscriptions.push(fileWatcher);
 

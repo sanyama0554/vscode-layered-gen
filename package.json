@@ -149,6 +149,11 @@
           "items": {
             "type": "string"
           }
+        },
+        "layered-gen.enableAutoGraphGeneration": {
+          "type": "boolean",
+          "default": false,
+          "description": "ファイル変更時に依存グラフを自動的に更新する"
         }
       }
     }

@@ -410,4 +410,47 @@ test/**
             await config.update('exclude', undefined, vscode.ConfigurationTarget.Workspace);
         }
     });
+
+    test('Should handle cancellation during analysis', async () => {
+        const cancellationTokenSource = new vscode.CancellationTokenSource();
+        
+        // Create test files
+        const testFiles = [];
+        for (let i = 0; i < 10; i++) {
+            testFiles.push({
+                path: path.join(testWorkspaceDir, 'test-samples', `file${i}.ts`),
+                content: `export class Class${i} {}`
+            });
+        }
+
+        // Ensure test directory exists
+        const testDir = path.join(testWorkspaceDir, 'test-samples');
+        if (!fs.existsSync(testDir)) {
+            fs.mkdirSync(testDir, { recursive: true });
+        }
+
+        // Write test files
+        testFiles.forEach(file => {
+            fs.writeFileSync(file.path, file.content);
+        });
+
+        try {
+            // Cancel immediately
+            cancellationTokenSource.cancel();
+            
+            await analyzer.analyzeWorkspace(undefined, cancellationTokenSource.token);
+            assert.fail('Should throw error on cancellation');
+        } catch (error: any) {
+            assert.strictEqual(error.message, 'Analysis cancelled', 'Should throw cancellation error');
+        } finally {
+            // Clean up test files
+            testFiles.forEach(file => {
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+            });
+            
+            cancellationTokenSource.dispose();
+        }
+    });
 });
