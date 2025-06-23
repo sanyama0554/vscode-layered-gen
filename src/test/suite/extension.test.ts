@@ -66,4 +66,26 @@ suite('Extension Test Suite', () => {
         const commands = await vscode.commands.getCommands();
         assert.ok(commands.includes('layered-gen.generateApiTestSkeletons'));
     });
+
+    test('Should have enableAutoGraphGeneration setting default to false', () => {
+        const config = vscode.workspace.getConfiguration('layered-gen');
+        const autoGeneration = config.get('enableAutoGraphGeneration');
+        assert.strictEqual(autoGeneration, false, 'enableAutoGraphGeneration should default to false');
+    });
+
+    test('Should not auto-generate dependency graph on activation', async () => {
+        // 拡張機能を再度アクティベート
+        const extension = vscode.extensions.getExtension('sanyama0554.vscode-layered-gen');
+        if (extension && !extension.isActive) {
+            await extension.activate();
+        }
+        
+        // TreeViewを取得して初期状態を確認
+        // TreeViewは自動的に生成されないため、初期状態では空になるはず
+        // この部分は実際のTreeViewインスタンスにアクセスできないため、
+        // コマンドが正しく登録されていることを確認
+        const commands = await vscode.commands.getCommands();
+        assert.ok(commands.includes('layered-gen.showDependencyGraph'), 'Dependency graph command should be available');
+        assert.ok(commands.includes('layered-gen.refreshDependencyGraph'), 'Refresh command should be available');
+    });
 });

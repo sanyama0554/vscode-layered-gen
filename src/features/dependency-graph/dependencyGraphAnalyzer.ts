@@ -35,13 +35,29 @@ export class DependencyGraphAnalyzer {
         });
     }
 
-    async analyzeWorkspace(filterPattern?: string): Promise<DependencyGraph> {
+    async analyzeWorkspace(filterPattern?: string, cancellationToken?: vscode.CancellationToken): Promise<DependencyGraph> {
         console.log('Starting workspace analysis with filter:', filterPattern);
+        
+        // Check cancellation before starting
+        if (cancellationToken?.isCancellationRequested) {
+            throw new Error('Analysis cancelled');
+        }
+        
         const files = await this.collectFiles(filterPattern);
         console.log(`Found ${files.length} files to analyze`);
         
-        const nodes = await this.analyzeFiles(files);
+        // Check cancellation after file collection
+        if (cancellationToken?.isCancellationRequested) {
+            throw new Error('Analysis cancelled');
+        }
+        
+        const nodes = await this.analyzeFiles(files, cancellationToken);
         console.log(`Generated ${nodes.length} nodes`);
+        
+        // Check cancellation after file analysis
+        if (cancellationToken?.isCancellationRequested) {
+            throw new Error('Analysis cancelled');
+        }
         
         const edges = this.generateEdges(nodes);
         console.log(`Generated ${edges.length} edges`);
@@ -119,10 +135,15 @@ export class DependencyGraphAnalyzer {
         }
     }
 
-    private async analyzeFiles(filePaths: string[]): Promise<DependencyNode[]> {
+    private async analyzeFiles(filePaths: string[], cancellationToken?: vscode.CancellationToken): Promise<DependencyNode[]> {
         const nodes: DependencyNode[] = [];
 
         for (const filePath of filePaths) {
+            // Check cancellation for each file
+            if (cancellationToken?.isCancellationRequested) {
+                throw new Error('Analysis cancelled');
+            }
+            
             try {
                 const sourceFile = this.project.addSourceFileAtPath(filePath);
                 const dependencies = this.extractDependencies(sourceFile, filePath);

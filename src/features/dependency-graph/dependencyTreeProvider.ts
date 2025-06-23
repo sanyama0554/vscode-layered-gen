@@ -41,16 +41,20 @@ export class DependencyTreeProvider implements vscode.TreeDataProvider<Dependenc
 
     constructor() {
         this.analyzer = new DependencyGraphAnalyzer();
-        this.refresh();
+        // 初期化時の自動リフレッシュを無効化
+        // this.refresh();
     }
 
-    refresh(): void {
-        this.analyzer.analyzeWorkspace().then(graph => {
+    refresh(cancellationToken?: vscode.CancellationToken): Promise<void> {
+        return this.analyzer.analyzeWorkspace(undefined, cancellationToken).then(graph => {
             this.graph = graph;
             this._onDidChangeTreeData.fire();
         }).catch(error => {
-            console.error('Failed to analyze workspace:', error);
-            vscode.window.showErrorMessage(`依存グラフの解析に失敗しました: ${error.message}`);
+            if (error.message !== 'Analysis cancelled') {
+                console.error('Failed to analyze workspace:', error);
+                vscode.window.showErrorMessage(`依存グラフの解析に失敗しました: ${error.message}`);
+            }
+            throw error;
         });
     }
 
