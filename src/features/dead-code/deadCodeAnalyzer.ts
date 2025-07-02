@@ -77,11 +77,18 @@ export class DeadCodeAnalyzer {
                 await this.createDefaultKnipConfig();
             }
 
-            const { stdout } = await execAsync('npx knip --reporter json', {
+            // Knip may exit with code 1 when it finds issues, so we need to handle both stdout and stderr
+            const result = await execAsync('npx knip --reporter json', {
                 cwd: this.workspaceRoot
+            }).catch(error => {
+                // If knip exits with error code but has stdout, use the stdout
+                if (error.stdout) {
+                    return { stdout: error.stdout, stderr: error.stderr };
+                }
+                throw error;
             });
 
-            const results = JSON.parse(stdout);
+            const results = JSON.parse(result.stdout);
             const items: DeadCodeItem[] = [];
 
             if (results.files) {
@@ -94,15 +101,19 @@ export class DeadCodeAnalyzer {
                 }
             }
 
-            if (results.exports) {
-                for (const [filePath, exports] of Object.entries(results.exports)) {
-                    for (const exportName of exports as string[]) {
-                        items.push({
-                            type: 'unused-export',
-                            filePath,
-                            name: exportName,
-                            description: `Unused export: ${exportName}`
-                        });
+            if (results.issues) {
+                for (const issue of results.issues) {
+                    if (issue.exports) {
+                        for (const exportItem of issue.exports) {
+                            items.push({
+                                type: 'unused-export',
+                                filePath: issue.file,
+                                name: exportItem.name,
+                                line: exportItem.line,
+                                column: exportItem.col,
+                                description: `Unused export: ${exportItem.name}`
+                            });
+                        }
                     }
                 }
             }
@@ -116,12 +127,19 @@ export class DeadCodeAnalyzer {
 
     private async analyzeUnreachableCode(): Promise<DeadCodeItem[]> {
         try {
-            const { stdout } = await execAsync(
+            // ESLint may exit with code 1 when it finds issues, so we need to handle both stdout and stderr
+            const result = await execAsync(
                 'npx eslint . --format json --rule "no-unreachable:error"',
                 { cwd: this.workspaceRoot }
-            );
+            ).catch(error => {
+                // If ESLint exits with error code but has stdout, use the stdout
+                if (error.stdout) {
+                    return { stdout: error.stdout, stderr: error.stderr };
+                }
+                throw error;
+            });
 
-            const results = JSON.parse(stdout);
+            const results = JSON.parse(result.stdout);
             const items: DeadCodeItem[] = [];
 
             for (const file of results) {
