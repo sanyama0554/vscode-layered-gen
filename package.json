@@ -77,6 +77,11 @@
         "command": "vscode-layered-gen.deadCodeCli",
         "title": "Run Dead Code CLI",
         "category": "Layered Generator"
+      },
+      {
+        "command": "vscode-layered-gen.configureDeadCodePreset",
+        "title": "Configure Dead Code Preset",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
@@ -204,51 +209,70 @@
           "default": false,
           "description": "ファイル変更時に依存グラフを自動的に更新する"
         },
+        "vscode-layered-gen.deadcode.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable dead code analysis"
+        },
+        "vscode-layered-gen.deadcode.useDefaultNestJSConfig": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use optimized NestJS configuration (recommended)",
+          "markdownDescription": "When enabled, uses pre-configured settings optimized for NestJS projects. **Recommended for most users.**"
+        },
         "vscode-layered-gen.deadcode.ignoreGlobs": {
           "type": "array",
-          "default": [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/build/**",
-            "**/.git/**",
-            "**/coverage/**",
-            "**/*.test.ts",
-            "**/*.spec.ts",
-            "**/*.d.ts"
-          ],
-          "description": "Dead code analysis ignore patterns",
+          "description": "File patterns to ignore during analysis (only used when 'useDefaultNestJSConfig' is false)",
           "items": {
             "type": "string"
-          }
+          },
+          "examples": [
+            "**/node_modules/**",
+            "**/*.test.ts",
+            "**/*.spec.ts"
+          ]
         },
         "vscode-layered-gen.deadcode.maxAllowed": {
           "type": "number",
           "default": 100,
-          "description": "Maximum allowed dead code items for CI"
+          "minimum": 0,
+          "description": "Maximum number of dead code items allowed (useful for CI/CD)"
         },
         "vscode-layered-gen.deadcode.autoAnalyzeOnSave": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically analyze dead code on file save"
+          "description": "Automatically run dead code analysis when files are saved"
         },
         "vscode-layered-gen.deadcode.knipConfig": {
           "type": "object",
-          "description": "Custom knip configuration"
+          "description": "Advanced: Custom knip configuration (only used when 'useDefaultNestJSConfig' is false)",
+          "properties": {
+            "entry": {
+              "type": "array",
+              "description": "Entry points for analysis",
+              "items": { "type": "string" }
+            },
+            "project": {
+              "type": "array",
+              "description": "Project file patterns",
+              "items": { "type": "string" }
+            }
+          }
         },
         "vscode-layered-gen.deadcode.eslintRules": {
           "type": "array",
-          "default": [
-            "no-unreachable"
-          ],
-          "description": "ESLint rules for dead code detection",
+          "description": "Advanced: ESLint rules for dead code detection (only used when 'useDefaultNestJSConfig' is false)",
           "items": {
             "type": "string"
-          }
+          },
+          "default": ["no-unreachable"]
         },
         "vscode-layered-gen.deadcode.coverageThreshold": {
           "type": "number",
-          "default": 0,
-          "description": "Coverage threshold for detecting dead code"
+          "description": "Advanced: Coverage threshold for detecting dead code (only used when 'useDefaultNestJSConfig' is false)",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0
         }
       }
     }
