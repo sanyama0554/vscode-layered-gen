@@ -4,6 +4,7 @@ import { ProtobufFieldNumberer } from './features/protobuf';
 import { DependencyTreeProvider, DependencyGraphWebview } from './features/dependency-graph';
 import { GraphQLDocsGenerator } from './features/graphql';
 import { ApiTestSkeletonGenerator } from './features/api-analysis';
+import { DeadCodeCommands } from './features/dead-code';
 
 export function activate(context: vscode.ExtensionContext) {
     try {
@@ -16,6 +17,13 @@ export function activate(context: vscode.ExtensionContext) {
         const dependencyGraphWebview = new DependencyGraphWebview(context);
         const graphqlDocsGenerator = new GraphQLDocsGenerator();
         const apiTestSkeletonGenerator = new ApiTestSkeletonGenerator();
+
+        // Initialize dead code detection
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const deadCodeCommands = new DeadCodeCommands(context, workspaceFolders[0].uri.fsPath);
+            deadCodeCommands.register();
+        }
 
     let disposable = vscode.commands.registerCommand('layered-gen.generateFiles', async (uri: vscode.Uri) => {
         if (!uri) {

@@ -15,6 +15,9 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "bin": {
+    "project-ext": "./out/cli/project-ext.js"
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -53,6 +56,27 @@
         "command": "layered-gen.generateApiTestSkeletons",
         "title": "Generate Test Skeletons",
         "category": "Layered Generator"
+      },
+      {
+        "command": "vscode-layered-gen.analyzeDeadCode",
+        "title": "Analyze Dead Code",
+        "category": "Layered Generator",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vscode-layered-gen.moveToTrash",
+        "title": "ごみ箱へ移動",
+        "category": "Layered Generator"
+      },
+      {
+        "command": "vscode-layered-gen.addTodoComment",
+        "title": "TODO コメント挿入",
+        "category": "Layered Generator"
+      },
+      {
+        "command": "vscode-layered-gen.deadCodeCli",
+        "title": "Run Dead Code CLI",
+        "category": "Layered Generator"
       }
     ],
     "menus": {
@@ -62,6 +86,25 @@
           "command": "layered-gen.generateFiles",
           "group": "2_workspace"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "vscode-layered-gen.moveToTrash",
+          "when": "view == deadCodeExplorer && viewItem == deadCodeItem",
+          "group": "inline"
+        },
+        {
+          "command": "vscode-layered-gen.addTodoComment",
+          "when": "view == deadCodeExplorer && viewItem == deadCodeItem",
+          "group": "inline"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "vscode-layered-gen.analyzeDeadCode",
+          "when": "view == deadCodeExplorer",
+          "group": "navigation"
+        }
       ]
     },
     "views": {
@@ -70,6 +113,12 @@
           "id": "dependencyGraph",
           "name": "ファイル依存グラフ",
           "when": "workspaceHasPackageJSON"
+        },
+        {
+          "id": "deadCodeExplorer",
+          "name": "Dead Code",
+          "icon": "$(search-stop)",
+          "contextualTitle": "Dead Code Analysis"
         }
       ]
     },
@@ -154,6 +203,52 @@
           "type": "boolean",
           "default": false,
           "description": "ファイル変更時に依存グラフを自動的に更新する"
+        },
+        "vscode-layered-gen.deadcode.ignoreGlobs": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.git/**",
+            "**/coverage/**",
+            "**/*.test.ts",
+            "**/*.spec.ts",
+            "**/*.d.ts"
+          ],
+          "description": "Dead code analysis ignore patterns",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vscode-layered-gen.deadcode.maxAllowed": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum allowed dead code items for CI"
+        },
+        "vscode-layered-gen.deadcode.autoAnalyzeOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically analyze dead code on file save"
+        },
+        "vscode-layered-gen.deadcode.knipConfig": {
+          "type": "object",
+          "description": "Custom knip configuration"
+        },
+        "vscode-layered-gen.deadcode.eslintRules": {
+          "type": "array",
+          "default": [
+            "no-unreachable"
+          ],
+          "description": "ESLint rules for dead code detection",
+          "items": {
+            "type": "string"
+          }
+        },
+        "vscode-layered-gen.deadcode.coverageThreshold": {
+          "type": "number",
+          "default": 0,
+          "description": "Coverage threshold for detecting dead code"
         }
       }
     }
@@ -167,7 +262,9 @@
     "test": "node ./out/test/runTest.js"
   },
   "dependencies": {
+    "@types/commander": "^2.12.0",
     "@types/ejs": "^3.1.5",
+    "commander": "^11.0.0",
     "ejs": "^3.1.10",
     "globby": "^11.1.0",
     "graphql": "^16.8.1",
