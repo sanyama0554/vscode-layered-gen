@@ -5,6 +5,7 @@ import { DependencyTreeProvider, DependencyGraphWebview } from './features/depen
 import { GraphQLDocsGenerator } from './features/graphql';
 import { ApiTestSkeletonGenerator } from './features/api-analysis';
 import { DeadCodeCommands } from './features/dead-code';
+import { DeadCodePresetCommand } from './features/dead-code/deadCodePresetCommand';
 
 export function activate(context: vscode.ExtensionContext) {
     try {
@@ -304,6 +305,17 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     context.subscriptions.push(generateApiTestSkeletonsCommand);
+
+    // Register dead code preset configuration command
+    let configureDeadCodePresetCommand = vscode.commands.registerCommand('vscode-layered-gen.configureDeadCodePreset', async () => {
+        try {
+            await DeadCodePresetCommand.configure();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Dead code preset configuration error: ${error}`);
+        }
+    });
+    context.subscriptions.push(configureDeadCodePresetCommand);
+
     } catch (error) {
         console.error('Failed to activate extension:', error);
         vscode.window.showErrorMessage(`拡張機能のアクティベーションに失敗しました: ${error}`);
