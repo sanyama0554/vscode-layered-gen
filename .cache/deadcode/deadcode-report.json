@@ -1,0 +1,115 @@
+{
+  "timestamp": "2025-07-02T12:21:15.709Z",
+  "items": [
+    {
+      "type": "unused-file",
+      "filePath": "src/test-unused.ts",
+      "description": "Unused file"
+    },
+    {
+      "type": "unused-file",
+      "filePath": "src/test/runTest.ts",
+      "description": "Unused file"
+    },
+    {
+      "type": "unused-file",
+      "filePath": "src/test/suite/index.ts",
+      "description": "Unused file"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dependency-graph/index.ts",
+      "name": "DependencyGraphAnalyzer",
+      "line": 1,
+      "column": 9,
+      "description": "Unused export: DependencyGraphAnalyzer"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/api-analysis/index.ts",
+      "name": "RestApiAnalyzer",
+      "line": 2,
+      "column": 9,
+      "description": "Unused export: RestApiAnalyzer"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeAnalyzer",
+      "line": 1,
+      "column": 9,
+      "description": "Unused export: DeadCodeAnalyzer"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeItem",
+      "line": 1,
+      "column": 27,
+      "description": "Unused export: DeadCodeItem"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeReport",
+      "line": 1,
+      "column": 41,
+      "description": "Unused export: DeadCodeReport"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeTreeProvider",
+      "line": 2,
+      "column": 9,
+      "description": "Unused export: DeadCodeTreeProvider"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeTreeItem",
+      "line": 2,
+      "column": 31,
+      "description": "Unused export: DeadCodeTreeItem"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeCli",
+      "line": 4,
+      "column": 9,
+      "description": "Unused export: DeadCodeCli"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeConfig",
+      "line": 5,
+      "column": 9,
+      "description": "Unused export: DeadCodeConfig"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/index.ts",
+      "name": "DeadCodeConfigManager",
+      "line": 5,
+      "column": 25,
+      "description": "Unused export: DeadCodeConfigManager"
+    },
+    {
+      "type": "unused-export",
+      "filePath": "src/features/dead-code/deadCodeConfig.ts",
+      "name": "DeadCodeConfigManager",
+      "line": 16,
+      "column": 14,
+      "description": "Unused export: DeadCodeConfigManager"
+    },
+    {
+      "type": "unreachable",
+      "filePath": "/home/yuma_yamasaki/develop/vscode-layered-gen/test-unused.js",
+      "line": 12,
+      "column": 5,
+      "description": "Unreachable code"
+    }
+  ]
+}
